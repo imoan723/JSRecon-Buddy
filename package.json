@@ -1,0 +1,14 @@
+{
+	"name": "js-recon-buddy",
+	"version": "1.0.0",
+	"description": "A browser extension for bug bounty reconnaissance that scans page scripts for interesting findings.",
+	"private": true,
+	"scripts": {
+		"lint": "eslint .",
+		"format": "prettier --write ."
+	},
+	"devDependencies": {
+		"eslint": "^8.57.0",
+		"prettier": "^3.2.5"
+	}
+}

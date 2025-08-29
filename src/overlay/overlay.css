@@ -1,14 +1,3 @@
-@layer reset;
-
-@layer reset {
-
-	#bug-bounty-scanner-overlay,
-	#bug-bounty-scanner-overlay * {
-		all: revert;
-		box-sizing: border-box;
-	}
-}
-
 :root {
 	--color-primary: #008cba;
 	--color-secondary: #00bcd4;
@@ -96,7 +85,7 @@
 	background-color: var(--color-summary-sticky-bg);
 
 	display: flex;
-	align-items: left;
+	align-items: center;
 	justify-content: flex-start;
 	width: 100%;
 

@@ -1,31 +1,59 @@
-# JS Bounty Buddy
+<p align="center">
+    <img src="./src/icons/buddy.png" alt="Buddy Logo" width="30%"/>
+</p>
+<p align="center">
+    <strong>JS Recon Buddy</strong>
+</p>
+
 
 A simple browser extension to quickly find interesting security-related information on a webpage. It injects an overlay to display its findings without interrupting your workflow.
 
 ## Features
 
-- On-Page Overlay - All results are displayed in an overlay directly on the page you're testing.
-- Comprehensive Scan - Analyzes inline scripts, external JavaScript files, and the main HTML document.
-- Categorized Findings - Organizes results into logical categories for clear and easy analysis.
-- Interactive Results - Easily copy individual sections or export all findings to a JSON file for further use.
+- On-Page Overlay - all results are displayed in an overlay directly on the page you're testing.
+- Comprehensive Scan - analyzes inline scripts, external JavaScript files, and the main HTML document.
+- Categorized Findings - organizes results into logical categories for clear and easy analysis.
+- Interactive Results - easily copy individual sections or export all findings to a JSON file for further use.
 
 ## What It Finds
 
 The scanner uses a set of regex patterns to identify and categorize potential security-related information:
 
-- Subdomains - Discovers related subdomains within the code.
-- Endpoints & Paths - Uncovers potential API endpoints and other useful paths.
-- Potential Secrets - Scans for API keys, tokens, and other sensitive data using pattern matching and Shannon entropy checks.
-- Potential DOM XSS Sinks - Identifies dangerous properties and functions like .innerHTML and document.write.
-- Interesting Parameters - Flags potentially vulnerable URL parameters (e.g., redirect, debug, url).
-- Source Maps - Finds links to source maps which can expose original source code.
-- JS Libraries - Lists identified JavaScript libraries and their versions.
+- Subdomains - discovers related subdomains within the code.
+- Endpoints & Paths - uncovers potential API endpoints and other useful paths.
+- Potential Secrets - scans for API keys, tokens, and other sensitive data using pattern matching and Shannon entropy checks.
+- Potential DOM XSS Sinks - identifies dangerous properties and functions like .innerHTML and document.write.
+- Interesting Parameters - flags potentially vulnerable URL parameters (e.g., redirect, debug, url).
+- Source Maps - finds links to source maps which can expose original source code.
+- JS Libraries - lists identified JavaScript libraries and their versions.
+
+## How to Install
+
+Since this extension is not on the Chrome Web Store, it must be loaded as an unpacked extension in developer mode.
+
+1. Download ZIP or clone this repository to your local machine.
+2. Open Google Chrome (or other chromium-based browser) and navigate to chrome://extensions.
+3. Turn on "Developer mode" using the toggle in the top-right corner.
+4. Click the "Load unpacked" button.
+5. Select the directory where you downloaded the repository. The extension will now be installed.
 
 ## How to Use
 
 1. Navigate to the target website.
 2. Click the extension icon in your browser's toolbar.
 3. (optional) Set your own parameters
-4. Press 'Analyse page'
+4. Press 'Analyze page'
 5. An overlay will appear and automatically start scanning the page.
 6. Review the categorized findings!
+
+## Automatic Version Check
+
+The extension automatically checks for new versions. When you open the popup, it compares its own version against the [manifest.json](manifest.json) file in this GitHub repository. To avoid excessive requests, the latest version number is cached for one hour. If a newer version is available on GitHub, an asterisk will appear on the GitHub logo in the popup.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Disclaimer
+
+This tool is intended for **educational** and **authorized** security testing purposes only. Do not use this tool on any system or website for which you do not have explicit, prior authorization. The author accepts no liability and is not responsible for any misuse or damage caused by this program. Use at your own risk.

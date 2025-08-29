@@ -1,11 +1,17 @@
-<div class="header-container">
-	<h1 class="scanner-header">JS Recon Buddy</h1>
-	<div class="button-group">
-		<button id="toggle-cat-button" class="header-button">Expand Categories</button>
-		<button id="toggle-all-button" class="header-button">Expand All</button>
-		<button id="export-button" class="header-button" disabled>Export JSON</button>
-		<button class="scanner-close">Close</button>
+<header class="scanner-overlay__header">
+	<h1 class="scanner-overlay__title">JS Recon Buddy</h1>
+	<div class="scanner-overlay__actions">
+		<button id="toggle-cat-button" class="btn btn--primary">
+			Expand Categories
+		</button>
+		<button id="toggle-all-button" class="btn btn--primary">Expand All</button>
+		<button id="export-button" class="btn btn--primary" disabled>
+			Export JSON
+		</button>
+		<button id="close-button" class="btn btn--danger">Close</button>
 	</div>
-</div>
-<p>Findings from page scripts. Manual verification is advised.</p>
-<div class="scanner-results"></div>
+</header>
+<p class="scanner-overlay__description">
+	Findings from page scripts. Manual verification is advised.
+</p>
+<main class="scanner-overlay__results"></main>

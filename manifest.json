@@ -1,0 +1,37 @@
+{
+	"manifest_version": 3,
+	"name": "JS Recon Buddy",
+	"version": "1.0",
+	"description": "Analyze page scripts for bug bounty reconnaissance.",
+	"permissions": [
+		"activeTab",
+		"scripting",
+		"storage"
+	],
+	"host_permissions": [
+		"<all_urls>"
+	],
+	"action": {
+		"default_title": "Run JS Recon Scanner",
+		"default_popup": "src/popup/popup.html"
+	},
+	"background": {
+		"service_worker": "src/background.js"
+	},
+	"icons": {
+		"16": "src/icons/buddy_16.png",
+		"48": "src/icons/buddy_48.png",
+		"128": "src/icons/buddy_128.png"
+	},
+	"web_accessible_resources": [
+		{
+			"resources": [
+				"src/overlay/overlay.html",
+				"src/content/rules.js"
+			],
+			"matches": [
+				"<all_urls>"
+			]
+		}
+	]
+}

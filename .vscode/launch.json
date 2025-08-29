@@ -1,0 +1,12 @@
+{
+  "configurations": [
+    {
+      "type": "chrome",
+      "name": "Launch chrome on https://github.com against localhost:port",
+      "request": "launch",
+      "url": "https://github.com",
+      "webRoot": "${workspaceFolder}",
+      "port": 9876
+    }
+  ]
+}

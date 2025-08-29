@@ -5,6 +5,7 @@
 		chrome.runtime.getURL("src/content/rules.js")
 	);
 	const OVERLAY_ID = "bug-bounty-scanner-overlay";
+	const CACHE_KEY_PREFIX = "scan_cache_";
 
 	const DEFAULT_PARAMETERS = [
 		"redirect",
@@ -40,16 +41,75 @@
 		"continue",
 	];
 
-	async function runScanner() {
-		if (document.getElementById(OVERLAY_ID)) {
-			document.getElementById(OVERLAY_ID).remove();
-			return;
-		}
-
-		createOverlay();
+	function getCacheKey() {
+		return `${CACHE_KEY_PREFIX}${window.location.href}`;
 	}
 
-	async function createOverlay() {
+	async function getCachedResults() {
+		const key = getCacheKey();
+		const data = await chrome.storage.local.get(key);
+		if (!data[key]) return null;
+
+		const results = {};
+		for (const category in data[key].results) {
+			results[category] = new Map(Object.entries(data[key].results[category]));
+		}
+		return { ...data[key], results };
+	}
+
+	async function setCachedResults(results) {
+		const key = getCacheKey();
+
+		const serializableResults = {};
+		for (const category in results) {
+			if (results[category] instanceof Map) {
+				serializableResults[category] = Object.fromEntries(results[category]);
+			}
+		}
+
+		await chrome.storage.local.set({
+			[key]: {
+				results: serializableResults,
+				timestamp: new Date().toISOString(),
+			},
+		});
+	}
+
+
+	async function runScanner(forceRescan = false) {
+		const existingOverlay = document.getElementById(OVERLAY_ID);
+
+		if (existingOverlay) {
+			existingOverlay.remove();
+			if (!forceRescan) {
+				return;
+			}
+		}
+
+		createOverlay(forceRescan);
+	}
+
+	async function performScan() {
+		updateOverlayContent(
+			'<h2><span class="spinner"></span> Analyzing scripts...</h2>'
+		);
+
+		setTimeout(async () => {
+			const { parameters } = await chrome.storage.sync.get({
+				parameters: DEFAULT_PARAMETERS,
+			});
+
+			const PATTERNS = getPatterns(parameters);
+			const allScripts = await gatherScripts();
+			const results = await processScriptsAsync(allScripts, PATTERNS);
+
+			await setCachedResults(results);
+
+			renderResults(results);
+		}, 50);
+	}
+
+	async function createOverlay(forceRescan = false) {
 		const overlay = document.createElement("div");
 		overlay.id = OVERLAY_ID;
 		const overlayURL = chrome.runtime.getURL("src/overlay/overlay.html");
@@ -70,21 +130,31 @@
 				overlay.querySelector("#close-button").onclick = closeOverlay;
 				document.addEventListener("keydown", handleEsc);
 
-				updateOverlayContent(
-					'<h2><span class="spinner"></span> Analyzing scripts...</h2>',
-				);
+				const rescanButton = overlay.querySelector("#rescan-button");
+				if (rescanButton) {
+					rescanButton.onclick = () => runScanner(true);
+				}
 
-				setTimeout(async () => {
-					const { parameters } = await chrome.storage.sync.get({
-						parameters: DEFAULT_PARAMETERS,
-					});
+				if (!forceRescan) {
+					const cachedData = await getCachedResults();
+					if (cachedData && cachedData.results) {
+						const timestamp = new Date(cachedData.timestamp).toLocaleString();
+						updateOverlayHeader(`Cached Scan (${timestamp})`);
+						renderResults(cachedData.results);
+						return;
+					}
+				}
 
-					const PATTERNS = getPatterns(parameters);
-					const allScripts = await gatherScripts();
-					const results = await processScriptsAsync(allScripts, PATTERNS);
-					renderResults(results);
-				}, 50);
+				updateOverlayHeader("Live Scan");
+				await performScan();
 			});
+	}
+
+	function updateOverlayHeader(titleText) {
+		const statusSpan = document.querySelector("#scan-status");
+		if (statusSpan) {
+			statusSpan.textContent = titleText;
+		}
 	}
 
 	async function gatherScripts() {
@@ -533,7 +603,7 @@
 
 		const summaryHTML = `
       <span>${title} (${findingsMap.size})</span>
-      <button class="btn--copy-section" data-copy-selector="${copySelector}" ${modifierAttribute}>Copy</button>
+      <button class="btn btn--copy-section" data-copy-selector="${copySelector}" ${modifierAttribute}>Copy</button>
     `;
 		return `<details><summary>${summaryHTML}</summary><ul>${itemsHTML}</ul></details>`;
 	}

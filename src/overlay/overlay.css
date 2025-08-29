@@ -1,3 +1,14 @@
+@layer reset;
+
+@layer reset {
+
+	#bug-bounty-scanner-overlay,
+	#bug-bounty-scanner-overlay * {
+		all: revert;
+		box-sizing: border-box;
+	}
+}
+
 :root {
 	--color-primary: #008cba;
 	--color-secondary: #00bcd4;
@@ -37,32 +48,76 @@
 	--border-radius-small: 3px;
 }
 
-
 #bug-bounty-scanner-overlay {
 	position: fixed;
 	top: 0;
 	left: 0;
-	z-index: var(--z-index-overlay);
 	width: 100vw;
 	height: 100vh;
+	z-index: var(--z-index-overlay);
 	padding: var(--spacing-base);
 	box-sizing: border-box;
 	overflow-y: scroll;
 
-	background-color: var(--color-bg-overlay);
+	background: var(--color-bg-overlay);
 	color: var(--color-text-light);
 	font-family: var(--font-family-monospace);
 	font-size: var(--font-size-base);
-
+	font-weight: 400;
+	line-height: 1.5;
+	text-align: left;
 	opacity: 0;
 	transform: translateY(20px);
 	animation: fadeInUp 0.3s forwards;
+}
+
+#bug-bounty-scanner-overlay .scan-status-badge {
+	font-size: 0.7rem;
+	font-weight: normal;
+	background-color: #555;
+	color: #fff;
+	padding: 2px 6px;
+	border-radius: 4px;
+	vertical-align: middle;
+	margin-left: 8px;
 }
 
 #bug-bounty-scanner-overlay .scanner-overlay__results {
 	max-height: 80vh;
 	overflow-y: auto;
 	margin-top: var(--spacing-base);
+}
+
+#bug-bounty-scanner-overlay .scanner-overlay__results>details>summary {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+
+	background-color: var(--color-summary-sticky-bg);
+
+	display: flex;
+	align-items: left;
+	justify-content: flex-start;
+	width: 100%;
+
+	padding: 10px 15px;
+	margin-left: -15px;
+	width: calc(100% + 15px);
+
+	border-bottom: 1px solid var(--color-border-medium);
+	border-top: 1px solid var(--color-border-medium);
+
+	color: var(--color-text-light);
+
+	margin-bottom: 0;
+}
+
+#bug-bounty-scanner-overlay .scanner-overlay__results>details>summary .btn--copy-section {
+	margin-left: auto;
+}
+
+#bug-bounty-scanner-overlay .scanner-overlay__results>details>summary span {
+	padding-left: 0;
 }
 
 
@@ -95,10 +150,15 @@
 	color: var(--color-text-light);
 	cursor: pointer;
 	border-radius: var(--border-radius-base);
+	transition: filter 0.2s ease-in-out, background-color 0.2s ease-in-out;
 }
 
 #bug-bounty-scanner-overlay .btn--danger {
 	background: var(--color-danger);
+}
+
+#bug-bounty-scanner-overlay .btn--danger:hover {
+	filter: brightness(80%);
 }
 
 #bug-bounty-scanner-overlay .btn--primary {
@@ -108,6 +168,21 @@
 #bug-bounty-scanner-overlay .btn--primary:disabled {
 	background-color: var(--color-disabled);
 	cursor: not-allowed;
+}
+
+#bug-bounty-scanner-overlay .btn--primary:hover:not(:disabled) {
+	filter: brightness(80%);
+}
+
+#bug-bounty-scanner-overlay .btn--secondary {
+	background-color: transparent;
+	border: 1px solid var(--color-secondary);
+	color: var(--color-secondary);
+}
+
+#bug-bounty-scanner-overlay .btn--secondary:hover {
+	background-color: var(--color-secondary);
+	color: var(--color-text-light);
 }
 
 #bug-bounty-scanner-overlay .btn--copy-section {
@@ -134,15 +209,6 @@
 #bug-bounty-scanner-overlay summary {
 	list-style: none;
 	cursor: pointer;
-}
-
-#bug-bounty-scanner-overlay>details>summary {
-	display: block;
-	position: sticky;
-	top: 0;
-	z-index: 1;
-	background-color: var(--color-summary-sticky-bg);
-	margin-bottom: 15px;
 }
 
 #bug-bounty-scanner-overlay>details>summary::-webkit-details-marker {
@@ -273,5 +339,42 @@
 @keyframes spin {
 	to {
 		transform: rotate(360deg);
+	}
+}
+
+@media (max-width: 768px) {
+	#bug-bounty-scanner-overlay .btn {
+		padding: 6px 8px;
+		font-size: var(--font-size-xsmall);
+	}
+
+	#bug-bounty-scanner-overlay .scanner-overlay__title {
+		font-size: 1rem;
+	}
+
+	#bug-bounty-scanner-overlay .scanner-overlay__actions {
+		flex-wrap: wrap;
+		justify-content: flex-end;
+	}
+
+	#bug-bounty-scanner-overlay .scan-status-badge {
+		display: block;
+		width: fit-content;
+		margin-left: 0;
+		margin-top: 4px;
+	}
+}
+
+@media (min-width: 769px) {
+	#bug-bounty-scanner-overlay {
+		font-size: 1rem;
+	}
+
+	#bug-bounty-scanner-overlay .btn {
+		padding: 10px 16px;
+	}
+
+	#bug-bounty-scanner-overlay .scanner-overlay__title {
+		font-size: 1.5rem;
 	}
 }

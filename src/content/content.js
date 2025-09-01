@@ -4,6 +4,9 @@
 	const { secretRules } = await import(
 		chrome.runtime.getURL("src/content/rules.js")
 	);
+	const { reconstructSource } = await import(
+		chrome.runtime.getURL("src/content/sourceMapParser.js")
+	);
 	const OVERLAY_ID = "bug-bounty-scanner-overlay";
 	const CACHE_KEY_PREFIX = "scan_cache_";
 	let shadowRoot = null;
@@ -378,12 +381,12 @@
 			{
 				key: "Source Maps",
 				title: "[M] Source Maps",
-				formatter: (finding, occurrences) => {
+				formatter: (safe, occurrences, rawFinding) => {
 					const sourceUrl = occurrences[0]?.source;
-					let fullUrl = finding;
+					let fullUrl = rawFinding;
 					try {
 						if (sourceUrl && sourceUrl.startsWith("http")) {
-							fullUrl = new URL(finding, sourceUrl).href;
+							fullUrl = new URL(rawFinding, sourceUrl).href;
 						}
 					} catch (e) {
 						console.warn(
@@ -394,7 +397,7 @@
 						);
 					}
 
-					return `<a href="${fullUrl}" target="_blank">${finding}</a>`;
+					return `<a href="${fullUrl}" target="_blank" class="source-map-link" data-url="${fullUrl}">${safe}</a>`;
 				},
 				copySelector: ".finding-details > summary > a",
 			},
@@ -466,6 +469,21 @@
 					}, 2000);
 				});
 			}
+
+			if (target.classList.contains('source-map-link')) {
+				event.preventDefault();
+				const url = target.dataset.url;
+
+				target.textContent = "Reconstructing...";
+
+				(async () => {
+					const reconstructedSources = await reconstructSource(url);
+
+					showSourceMapModal(reconstructedSources, url);
+
+					target.textContent = url.split('/').pop() || url;
+				})();
+			}
 		});
 
 		attachExportListener(results);
@@ -530,6 +548,128 @@
 		modal.onclick = (e) => {
 			if (e.target === modal) modal.remove();
 		};
+	}
+
+	function showSourceMapModal(sources, sourceMapUrl) {
+		const existingModal = shadowRoot.getElementById('context-modal');
+		if (existingModal) existingModal.remove();
+
+		const modal = document.createElement("div");
+		modal.id = "context-modal";
+
+		const copyButtonSVG = `<svg width='12' height='12' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'><rect width='24' height='24' stroke='none' fill='#000000' opacity='0'/><g transform="matrix(1.43 0 0 1.43 12 12)" ><path style="stroke: none; stroke-width: 1; stroke-dasharray: none; stroke-linecap: butt; stroke-dashoffset: 0; stroke-linejoin: miter; stroke-miterlimit: 4; fill: rgb(255,255,255); fill-rule: nonzero; opacity: 1;" transform=" translate(-8, -7.5)" d="M 2.5 1 C 1.675781 1 1 1.675781 1 2.5 L 1 10.5 C 1 11.324219 1.675781 12 2.5 12 L 4 12 L 4 12.5 C 4 13.324219 4.675781 14 5.5 14 L 13.5 14 C 14.324219 14 15 13.324219 15 12.5 L 15 4.5 C 15 3.675781 14.324219 3 13.5 3 L 12 3 L 12 2.5 C 12 1.675781 11.324219 1 10.5 1 Z M 2.5 2 L 10.5 2 C 10.78125 2 11 2.21875 11 2.5 L 11 10.5 C 11 10.78125 10.78125 11 10.5 11 L 2.5 11 C 2.21875 11 2 10.78125 2 10.5 L 2 2.5 C 2 2.21875 2.21875 2 2.5 2 Z M 12 4 L 13.5 4 C 13.78125 4 14 4.21875 14 4.5 L 14 12.5 C 14 12.78125 13.78125 13 13.5 13 L 5.5 13 C 5.21875 13 5 12.78125 5 12.5 L 5 12 L 10.5 12 C 11.324219 12 12 11.324219 12 10.5 Z" stroke-linecap="round" /></g></svg>`;
+
+		const filePaths = Object.keys(sources);
+		const fileTreeHTML = generateFileTreeHTML(filePaths);
+		modal.innerHTML = `
+    <div class="modal-content-source-viewer">
+      <span class="modal-close">&times;</span>
+      <p>Reconstructed ${filePaths.length} sources from <a target="_blank" href="${sourceMapUrl}">${sourceMapUrl.split('/').pop()}</a>:</p>
+      <div class="source-viewer">
+        <div class="file-browser">${fileTreeHTML}</div>
+        <div class="code-viewer">
+          <div class="code-header">
+            <span id="code-filename">Select a file</span>
+            <div class="button-group">
+              <button id="copy-code-button" class="btn btn--copy" title="Copy code" disabled>${copyButtonSVG}</button>
+              <button id="download-file-button" class="btn btn--primary" disabled>Download</button>
+            </div>
+          </div>
+          <pre><code id="code-content"></code></pre>
+        </div>
+      </div>
+    </div>
+  `;
+
+		shadowRoot.appendChild(modal);
+
+		const modalContent = modal.querySelector(".modal-content-source-viewer");
+		const codeContentEl = modalContent.querySelector('#code-content');
+		const codeFilenameEl = modalContent.querySelector('#code-filename');
+		const copyButton = modalContent.querySelector('#copy-code-button');
+		const downloadButton = modalContent.querySelector('#download-file-button');
+
+		modalContent.querySelectorAll('.file-link').forEach(link => {
+			link.addEventListener('click', (e) => {
+				e.preventDefault();
+				const fileName = e.target.closest('a').dataset.filename;
+				const fileContent = sources[fileName] || '';
+
+				codeFilenameEl.textContent = fileName;
+				codeContentEl.textContent = fileContent;
+
+				const hasContent = fileContent.length > 0;
+				copyButton.disabled = !hasContent;
+				downloadButton.disabled = !hasContent;
+			});
+		});
+
+		copyButton.addEventListener('click', () => {
+			const contentToCopy = codeContentEl.textContent;
+			if (!contentToCopy) return;
+
+			navigator.clipboard.writeText(codeContentEl.textContent).then(() => {
+				copyButton.innerHTML = 'Copied!';
+				setTimeout(() => {
+					copyButton.innerHTML = copyButtonSVG;
+				}, 2000);
+			});
+		});
+
+		downloadButton.addEventListener('click', () => {
+			const fileName = codeFilenameEl.textContent;
+			const content = codeContentEl.textContent;
+			if (!fileName || fileName === 'Select a file' || !content) return;
+
+			const blob = new Blob([content], { type: 'text/plain' });
+			const url = URL.createObjectURL(blob);
+			const a = document.createElement('a');
+			a.href = url;
+			a.download = fileName.split('/').pop();
+			document.body.appendChild(a);
+			a.click();
+			document.body.removeChild(a);
+			URL.revokeObjectURL(url);
+		});
+
+		modalContent.querySelector('.modal-close').onclick = () => shadowRoot.getElementById('context-modal').remove();
+	}
+
+	function generateFileTreeHTML(filePaths) {
+		const root = {};
+		filePaths.forEach(path => {
+			let currentLevel = root;
+			path.split('/').forEach(part => {
+				if (!currentLevel[part]) {
+					currentLevel[part] = {};
+				}
+				currentLevel = currentLevel[part];
+			});
+		});
+
+		const createHTML = (node, path = '') => {
+			let html = '<ul>';
+			const entries = Object.entries(node);
+			if (entries.length === 0) return '';
+
+			entries.forEach(([name, children]) => {
+				const currentPath = path ? `${path}/${name}` : name;
+				const hasChildren = Object.keys(children).length > 0;
+
+				html += '<li>';
+				if (hasChildren) {
+					html += `<details open><summary><span class="folder-icon">🗀</span> ${name}</summary>${createHTML(children, currentPath)}</details>`;
+				} else {
+					html += `<a href="#" class="file-link" data-filename="${currentPath}"><span class="file-icon">🖹</span> ${name}</a>`;
+				}
+				html += '</li>';
+			});
+
+			html += '</ul>';
+			return html;
+		};
+
+		return createHTML(root);
 	}
 
 	let exportController = new AbortController();
@@ -692,12 +832,7 @@
 						: null,
 				group: 1,
 				context: "snippet",
-			},
-			// 'High-Value Keywords': {
-			// 	regex: keywords && keywords.length > 0 ? new RegExp(`(["'])([^"'\`]*\\b(${keywords.join('|')})\\b[^"'\`]*)\\1`, 'gi') : null,
-			// 	group: 2,
-			// 	context: 'snippet'
-			// },
+			}
 		};
 		for (const rule of secretRules) {
 			if (!patterns["Potential Secrets"]) {

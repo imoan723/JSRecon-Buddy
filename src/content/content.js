@@ -811,7 +811,7 @@
 				context: "snippet",
 			},
 			"Source Maps": {
-				regex: /\/[#*]\s?sourceMappingURL=([^\s*]+)/g,
+				regex: /\/[#*]\s?sourceMappingURL=([^\s<]+)/g,
 				group: 1,
 				context: "line",
 			},

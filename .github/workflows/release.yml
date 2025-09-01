@@ -25,11 +25,14 @@ jobs:
         run: |
           cd release
           zip -r ../js-recon-buddy-${{ github.ref_name }}.zip .
+          zip -r ../js-recon-buddy.zip .
     
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: js-recon-buddy-${{ github.ref_name }}.zip
+          files: |
+            js-recon-buddy-${{ github.ref_name }}.zip
+            js-recon-buddy.zip
           draft: false
           token: ${{ secrets.RELEASE_TOKEN }}
           make_latest: true

@@ -32,3 +32,4 @@ jobs:
           files: js-recon-buddy-${{ github.ref_name }}.zip
           draft: false
           token: ${{ secrets.RELEASE_TOKEN }}
+          make_latest: true

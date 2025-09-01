@@ -42,7 +42,7 @@ While those are great for a quick look, they have a few key limitations:
 - Most are hardcoded to find specific things, like just endpoints. Adding new scanners for secrets or parameters isn't straightforward.
 - CORS...Bookmarklets [have hard time analyzing](https://medium.com/making-instapaper/bookmarklets-are-dead-d470d4bbb626) scripts from other domains, leaving major blind spots.
 
-JS Bounty Buddy was built to solve these problems. It takes the great idea of a recon bookmarklet and makes it more powerful.
+JS Recon Buddy was built to solve these problems. It takes the great idea of a recon bookmarklet and makes it more powerful.
 
 ## Examples
 

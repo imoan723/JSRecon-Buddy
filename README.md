@@ -42,29 +42,29 @@ While those are great for a quick look, they have a few key limitations:
 - Most are hardcoded to find specific things, like just endpoints. Adding new scanners for secrets or parameters isn't straightforward.
 - CORS...Bookmarklets [have hard time analyzing](https://medium.com/making-instapaper/bookmarklets-are-dead-d470d4bbb626) scripts from other domains, leaving major blind spots.
 
-JS Bounty Buddy was built to solve these problems. It takes the great idea of a recon bookmarklet and makes it more powerful.
+JS Recon Buddy was built to solve these problems. It takes the great idea of a recon bookmarklet and makes it more powerful.
 
 ## Examples
 
 - Extension's popup
-<figure align="center">
+<p align="center">
 	<img src="./assets/popup.png" alt="Popup" width="40%"/>
-</figure>
+</p>
 
 - First scan of a given website
-<figure align="center">
+<p align="center">
 	<img src="./assets/github-first-scan.png" alt="First scan" width="90%"/>
-</figure>
+</p>
 
 - Cached results of a given website
-<figure align="center">
+<p align="center">
 	<img src="./assets/github-rescan.png" alt="Cached results" width="90%"/>
-</figure>
+</p>
 
 - New version is available on Github
-<figure align="center">
+<p align="center">
 	<img src="./assets/new-version-av.png" alt="New Version" width="40%"/>
-</figure>
+</p>
 
 ## How to Install or Update
 
@@ -95,9 +95,9 @@ The extension will now be installed or updated.
 
 The extension automatically checks for new versions. When you open the popup, it compares its own version against the [manifest.json](manifest.json) file in this GitHub repository. To avoid excessive requests, the latest version number is cached for 6 hours. If a newer version is available on GitHub, an asterisk will appear on the GitHub logo in the popup.
 
-<figure align="center">
+<p align="center">
 	<img src="./assets/new-version-av-tip.png" alt="New Version" width="40%"/>
-</figure>
+</p>
 
 ## Contributing
 
@@ -109,7 +109,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-The secret detection patterns in [rules.js](src/content/rules.js)were heavily inspired by [the comprehensive rule set](https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml) from the fantastic open-source project, Gitleaks, which I've adapted and expanded upon. A big thanks to the Gitleaks creators and contributors for providing such a great foundation, which is distributed under the MIT License.
+The secret detection patterns in [rules.js](src/content/rules.js) were heavily inspired by [the comprehensive rule set](https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml) from the fantastic open-source project, Gitleaks, which I've adapted and expanded upon. A big thanks to the Gitleaks creators and contributors for providing such a great foundation, which is distributed under the MIT License.
 
 A special thanks goes to the many security researchers in the bug bounty community whose clever JavaScript bookmarklets were the original inspiration for this extension.
 

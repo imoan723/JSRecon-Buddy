@@ -15,7 +15,7 @@ A simple browser extension to quickly find interesting security-related informat
 - Categorized Findings - organizes results into logical categories for clear and easy analysis.
 - Interactive Results - easily copy individual sections or export all findings to a JSON file for further use.
 
-## What It Finds
+## What it finds?
 
 The scanner uses a set of regex patterns to identify and categorize potential security-related information:
 
@@ -25,6 +25,7 @@ The scanner uses a set of regex patterns to identify and categorize potential se
 - Potential DOM XSS Sinks - identifies dangerous properties and functions like .innerHTML and document.write.
 - Interesting Parameters - flags potentially vulnerable URL parameters (e.g., redirect, debug, url).
 - Source Maps - finds links to source maps which can expose original source code.
+> If it is a valid source map, the extension tries to deconstruct source files based on data there
 - JS Libraries - lists identified JavaScript libraries and their versions.
 
 ## Why this exists?
@@ -66,7 +67,12 @@ JS Recon Buddy was built to solve these problems. It takes the great idea of a r
 	<img src="./assets/new-version-av.png" alt="New Version" width="40%"/>
 </p>
 
-## How to Install or Update
+- Deconstructed source map
+<p align="center">
+	<img src="./assets/deconstructed-sources.png" alt="Source maps" width="90%"/>
+</p>
+
+## How to Install or Update?
 
 Since this extension is not on the Chrome Web Store, it must be loaded as an unpacked extension in developer mode.
 
@@ -80,7 +86,9 @@ Since this extension is not on the Chrome Web Store, it must be loaded as an unp
 
 The extension will now be installed or updated.
 
-## How to Use
+## How to use?
+
+### Main usage
 
 1. Navigate to the target website.
 2. Click the extension icon in your browser's toolbar.
@@ -91,7 +99,15 @@ The extension will now be installed or updated.
     - You can rescan the page again if you want
 7. Review the categorized findings!
 
-## Automatic Version Check
+### Source maps deconstruction
+
+If you want to view deconstructed source files, click on the Source Map entry, then on the url. What you will see, is the source code as available in the source map itself.
+
+<p align="center">
+	<img src="./assets/deconstructed-sources.png" alt="Source maps" width="90%"/>
+</p>
+
+## Automatic version check
 
 The extension automatically checks for new versions. When you open the popup, it compares its own version against the [manifest.json](manifest.json) file in this GitHub repository. To avoid excessive requests, the latest version number is cached for 6 hours. If a newer version is available on GitHub, an asterisk will appear on the GitHub logo in the popup.
 

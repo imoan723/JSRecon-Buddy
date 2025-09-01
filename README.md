@@ -49,19 +49,19 @@ The scanner uses a set of regex patterns to identify and categorize potential se
 	<img src="./assets/new-version-av.png" alt="New Version" width="40%"/>
 </figure>
 
-## How to Install
+## How to Install or Update
 
 Since this extension is not on the Chrome Web Store, it must be loaded as an unpacked extension in developer mode.
 
-1. Download ZIP or clone this repository to your local machine.
+1. Download [ZIP from releases](https://github.com/TheArqsz/JSRecon-Buddy/releases/latest/download/js-recon-buddy.zip) or clone this repository to your local machine.
    
-   > Unzip or Extract the ZIP file. This will create a new folder with the extension's files inside.
+   > If downloaded as a file, unzip it to a directory called e.g. `js-recon-buddy`.
 3. Open Google Chrome (or other chromium-based browser) and navigate to chrome://extensions.
 4. Turn on "Developer mode" using the toggle in the top-right corner.
 5. Click the "Load unpacked" button.
 6. Select the directory where you cloned the repository or unzipped the archive.
 
-The extension will now be installed.
+The extension will now be installed or updated.
 
 ## How to Use
 

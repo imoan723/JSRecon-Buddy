@@ -7,10 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.1.0] - 2025-09-01
 
+### Added
+
+- New Github workflow for creating releases
+
 ### Changed
 
--   **Refactored the entire UI to use the Shadow DOM.** This provides complete CSS encapsulation, preventing style conflicts with host pages and ensuring a consistent, reliable user interface across all websites.
--   **Revised and improved component styles.** The UI has been updated for better layout, readability, and consistency, including fixes for minor alignment and overflow issues.
+- **Refactored the entire UI to use the Shadow DOM.** This provides complete CSS encapsulation, preventing style conflicts with host pages and ensuring a consistent, reliable user interface across all websites.
+- **Revised and improved component styles.** The UI has been updated for better layout, readability, and consistency, including fixes for minor alignment and overflow issues.
+- Added examples in the README.md 
 
 ### Removed
 
@@ -22,10 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
--   **Initial public release.** A working Proof of Concept for the JS Recon Buddy extension.
--   Core scanning functionality for subdomains, endpoints, potential secrets, JS libraries, and source maps.
--   An injectable overlay UI to display scan results directly on the page.
--   Features for rescanning, exporting results to JSON, and viewing the context of each finding.
+- **Initial public release.** A working Proof of Concept for the JS Recon Buddy extension.
+- Core scanning functionality for subdomains, endpoints, potential secrets, JS libraries, and source maps.
+- An injectable overlay UI to display scan results directly on the page.
+- Features for rescanning, exporting results to JSON, and viewing the context of each finding.
 
 ---
 

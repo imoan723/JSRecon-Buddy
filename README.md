@@ -27,6 +27,28 @@ The scanner uses a set of regex patterns to identify and categorize potential se
 - Source Maps - finds links to source maps which can expose original source code.
 - JS Libraries - lists identified JavaScript libraries and their versions.
 
+## Examples
+
+- Extension's popup
+<figure align="center">
+	<img src="./assets/popup.png" alt="Popup" width="40%"/>
+</figure>
+
+- First scan of a given website
+<figure align="center">
+	<img src="./assets/github-first-scan.png" alt="First scan" width="90%"/>
+</figure>
+
+- Cached results of a given website
+<figure align="center">
+	<img src="./assets/github-rescan.png" alt="Cached results" width="90%"/>
+</figure>
+
+- New version is available on Github
+<figure align="center">
+	<img src="./assets/new-version-av.png" alt="New Version" width="40%"/>
+</figure>
+
 ## How to Install
 
 Since this extension is not on the Chrome Web Store, it must be loaded as an unpacked extension in developer mode.
@@ -55,6 +77,10 @@ The extension will now be installed.
 ## Automatic Version Check
 
 The extension automatically checks for new versions. When you open the popup, it compares its own version against the [manifest.json](manifest.json) file in this GitHub repository. To avoid excessive requests, the latest version number is cached for one hour. If a newer version is available on GitHub, an asterisk will appear on the GitHub logo in the popup.
+
+<figure align="center">
+	<img src="./assets/new-version-av-tip.png" alt="New Version" width="40%"/>
+</figure>
 
 ## License
 

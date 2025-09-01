@@ -24,7 +24,6 @@
 		const latestVersion = remoteManifest.version;
 
 		const currentVersion = chrome.runtime.getManifest().version;
-		console.log(currentVersion);
 		if (latestVersion > currentVersion) {
 			githubLink.classList.add('update-available');
 			githubLink.setAttribute('title', `Version ${latestVersion} is available`);

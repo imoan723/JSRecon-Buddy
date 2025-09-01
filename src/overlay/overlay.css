@@ -1,4 +1,5 @@
-:root {
+:host {
+	all: initial;
 	--color-primary: #008cba;
 	--color-secondary: #00bcd4;
 	--color-danger: #c7372f;
@@ -35,9 +36,7 @@
 	--z-index-overlay: 2147483647;
 	--border-radius-base: 4px;
 	--border-radius-small: 3px;
-}
 
-#bug-bounty-scanner-overlay {
 	position: fixed;
 	top: 0;
 	left: 0;
@@ -60,7 +59,14 @@
 	animation: fadeInUp 0.3s forwards;
 }
 
-#bug-bounty-scanner-overlay .scan-status-badge {
+.scanner {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	gap: var(--spacing-base);
+}
+
+.scan-status-badge {
 	font-size: 0.7rem;
 	font-weight: normal;
 	background-color: #555;
@@ -71,13 +77,13 @@
 	margin-left: 8px;
 }
 
-#bug-bounty-scanner-overlay .scanner-overlay__results {
+.scanner-overlay__results {
 	max-height: 80vh;
 	overflow-y: auto;
 	margin-top: var(--spacing-base);
 }
 
-#bug-bounty-scanner-overlay .scanner-overlay__results>details>summary {
+.scanner-overlay__results>details>summary {
 	position: sticky;
 	top: 0;
 	z-index: 1;
@@ -93,6 +99,8 @@
 	margin-left: -15px;
 	width: calc(100% + 15px);
 
+	box-sizing: border-box;
+
 	border-bottom: 1px solid var(--color-border-medium);
 	border-top: 1px solid var(--color-border-medium);
 
@@ -101,16 +109,16 @@
 	margin-bottom: 0;
 }
 
-#bug-bounty-scanner-overlay .scanner-overlay__results>details>summary .btn--copy-section {
+.scanner-overlay__results>details>summary .btn--copy-section {
 	margin-left: auto;
 }
 
-#bug-bounty-scanner-overlay .scanner-overlay__results>details>summary span {
+.scanner-overlay__results>details>summary span {
 	padding-left: 0;
 }
 
 
-#bug-bounty-scanner-overlay .scanner-overlay__header {
+.scanner-overlay__header {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
@@ -119,7 +127,7 @@
 	margin-bottom: 5px;
 }
 
-#bug-bounty-scanner-overlay .scanner-overlay__title {
+.scanner-overlay__title {
 	margin: 0;
 	padding: 0;
 	border: none;
@@ -127,12 +135,12 @@
 	font-size: var(--font-size-large);
 }
 
-#bug-bounty-scanner-overlay .scanner-overlay__actions {
+.scanner-overlay__actions {
 	display: flex;
 	gap: 10px;
 }
 
-#bug-bounty-scanner-overlay .btn {
+.btn {
 	border: none;
 	padding: 8px 12px;
 	font-size: var(--font-size-small);
@@ -142,39 +150,39 @@
 	transition: filter 0.2s ease-in-out, background-color 0.2s ease-in-out;
 }
 
-#bug-bounty-scanner-overlay .btn--danger {
+.btn--danger {
 	background: var(--color-danger);
 }
 
-#bug-bounty-scanner-overlay .btn--danger:hover {
+.btn--danger:hover {
 	filter: brightness(80%);
 }
 
-#bug-bounty-scanner-overlay .btn--primary {
+.btn--primary {
 	background-color: var(--color-primary);
 }
 
-#bug-bounty-scanner-overlay .btn--primary:disabled {
+.btn--primary:disabled {
 	background-color: var(--color-disabled);
 	cursor: not-allowed;
 }
 
-#bug-bounty-scanner-overlay .btn--primary:hover:not(:disabled) {
+.btn--primary:hover:not(:disabled) {
 	filter: brightness(80%);
 }
 
-#bug-bounty-scanner-overlay .btn--secondary {
+.btn--secondary {
 	background-color: transparent;
 	border: 1px solid var(--color-secondary);
 	color: var(--color-secondary);
 }
 
-#bug-bounty-scanner-overlay .btn--secondary:hover {
+.btn--secondary:hover {
 	background-color: var(--color-secondary);
 	color: var(--color-text-light);
 }
 
-#bug-bounty-scanner-overlay .btn--copy-section {
+.btn--copy-section {
 	background-color: var(--color-info);
 	padding: 4px 8px;
 	font-size: var(--font-size-xsmall);
@@ -183,46 +191,47 @@
 }
 
 
-#bug-bounty-scanner-overlay details {
-	border-inline-start: 2px solid var(--color-border-medium);
+details {
+	/* border-inline-start: 2px solid var(--color-border-medium); */
 	padding-inline-start: 15px;
 	margin-bottom: 15px;
 	display: block;
 }
 
-#bug-bounty-scanner-overlay ul {
+ul {
 	list-style: none;
-	padding-inline-start: 20px;
+	padding-inline-start: 0;
+	/* padding-inline-start: 20px; */
 }
 
-#bug-bounty-scanner-overlay summary {
+summary {
 	list-style: none;
 	cursor: pointer;
 }
 
-#bug-bounty-scanner-overlay>details>summary::-webkit-details-marker {
+details>summary::-webkit-details-marker {
 	display: none;
 }
 
-#bug-bounty-scanner-overlay>details>summary .summary-content {
+details>summary .summary-content {
 	display: flex;
 	justify-content: space-between;
 	align-items: center;
 	width: 100%;
 }
 
-#bug-bounty-scanner-overlay .sub-section {
+.sub-section {
 	border-inline-start: 2px solid var(--color-border-light);
 	padding-inline-start: 15px;
 	margin-inline-start: 10px;
 }
 
-#bug-bounty-scanner-overlay a {
+a {
 	color: var(--color-secondary);
 	text-decoration: none;
 }
 
-#bug-bounty-scanner-overlay a:hover {
+a:hover {
 	text-decoration: underline;
 }
 
@@ -236,7 +245,7 @@
 	color: var(--color-text-light);
 }
 
-#bug-bounty-scanner-overlay .context-snippet {
+.context-snippet {
 	color: var(--color-text-dark);
 	background-color: var(--color-bg-dark-2);
 	padding: 4px 8px;
@@ -247,14 +256,14 @@
 	word-break: break-all;
 }
 
-#bug-bounty-scanner-overlay .highlight {
+.highlight {
 	background-color: var(--color-highlight-bg);
 	color: var(--color-highlight-text);
 	padding: 2px 1px;
 	border-radius: var(--border-radius-small);
 }
 
-#bug-bounty-scanner-overlay summary::before {
+summary::before {
 	content: "▶";
 	display: inline-block;
 	margin-inline-end: 6px;
@@ -262,7 +271,7 @@
 	transition: transform 0.2s;
 }
 
-#bug-bounty-scanner-overlay details[open]>summary::before {
+details[open]>summary::before {
 	transform: rotate(90deg);
 }
 
@@ -315,7 +324,7 @@
 	}
 }
 
-#bug-bounty-scanner-overlay .spinner {
+.spinner {
 	display: inline-block;
 	width: 1em;
 	height: 1em;
@@ -332,21 +341,21 @@
 }
 
 @media (max-width: 768px) {
-	#bug-bounty-scanner-overlay .btn {
+	.btn {
 		padding: 6px 8px;
 		font-size: var(--font-size-xsmall);
 	}
 
-	#bug-bounty-scanner-overlay .scanner-overlay__title {
+	.scanner-overlay__title {
 		font-size: 1rem;
 	}
 
-	#bug-bounty-scanner-overlay .scanner-overlay__actions {
+	.scanner-overlay__actions {
 		flex-wrap: wrap;
 		justify-content: flex-end;
 	}
 
-	#bug-bounty-scanner-overlay .scan-status-badge {
+	.scan-status-badge {
 		display: block;
 		width: fit-content;
 		margin-left: 0;
@@ -355,15 +364,15 @@
 }
 
 @media (min-width: 769px) {
-	#bug-bounty-scanner-overlay {
+		{
 		font-size: 1rem;
 	}
 
-	#bug-bounty-scanner-overlay .btn {
+	.btn {
 		padding: 10px 16px;
 	}
 
-	#bug-bounty-scanner-overlay .scanner-overlay__title {
+	.scanner-overlay__title {
 		font-size: 1.5rem;
 	}
 }

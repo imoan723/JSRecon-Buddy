@@ -6,7 +6,7 @@
 	);
 	const OVERLAY_ID = "bug-bounty-scanner-overlay";
 	const CACHE_KEY_PREFIX = "scan_cache_";
-
+	let shadowRoot = null;
 	const DEFAULT_PARAMETERS = [
 		"redirect",
 		"url",
@@ -110,27 +110,30 @@
 	}
 
 	async function createOverlay(forceRescan = false) {
-		const overlay = document.createElement("div");
-		overlay.id = OVERLAY_ID;
+		const shadowHost = document.createElement("div");
+		shadowHost.id = OVERLAY_ID;
+		document.body.appendChild(shadowHost);
+		shadowRoot = shadowHost.attachShadow({ mode: "open" });
+
 		const overlayURL = chrome.runtime.getURL("src/overlay/overlay.html");
+		const cssURL = chrome.runtime.getURL("src/overlay/overlay.css");
 
 		fetch(overlayURL)
 			.then((response) => response.text())
 			.then(async (html) => {
-				overlay.innerHTML = html;
-				document.body.appendChild(overlay);
+				shadowRoot.innerHTML = `<style>@import "${cssURL}";</style>${html}`;
 
 				const closeOverlay = () => {
-					overlay.remove();
+					shadowHost.remove();
 					document.removeEventListener("keydown", handleEsc);
 				};
 				const handleEsc = (event) => {
 					if (event.key === "Escape") closeOverlay();
 				};
-				overlay.querySelector("#close-button").onclick = closeOverlay;
+				shadowRoot.querySelector("#close-button").onclick = closeOverlay;
 				document.addEventListener("keydown", handleEsc);
 
-				const rescanButton = overlay.querySelector("#rescan-button");
+				const rescanButton = shadowRoot.querySelector("#rescan-button");
 				if (rescanButton) {
 					rescanButton.onclick = () => runScanner(true);
 				}
@@ -151,7 +154,7 @@
 	}
 
 	function updateOverlayHeader(titleText) {
-		const statusSpan = document.querySelector("#scan-status");
+		const statusSpan = shadowRoot.querySelector("#scan-status");
 		if (statusSpan) {
 			statusSpan.textContent = titleText;
 		}
@@ -307,14 +310,14 @@
 	}
 
 	function updateOverlayContent(html) {
-		const resultsContainer = document.querySelector(
+		const resultsContainer = shadowRoot.querySelector(
 			`.scanner-overlay__results`,
 		);
 		if (resultsContainer) resultsContainer.innerHTML = html;
 	}
 
 	function renderResults(results) {
-		let expButton = document.getElementById("export-button");
+		let expButton = shadowRoot.getElementById("export-button");
 		if (expButton) {
 			expButton.disabled = false;
 		}
@@ -420,7 +423,7 @@
 	}
 
 	function attachEventListeners(results) {
-		const resultsContainer = document.querySelector(
+		const resultsContainer = shadowRoot.querySelector(
 			`.scanner-overlay__results`,
 		);
 		resultsContainer.addEventListener("click", (event) => {
@@ -470,7 +473,7 @@
 	}
 
 	function attachCollapseListener() {
-		const toggleCatButton = document.getElementById("toggle-cat-button");
+		const toggleCatButton = shadowRoot.getElementById("toggle-cat-button");
 		let areCatOpen = false;
 
 		toggleCatButton.addEventListener("click", () => {
@@ -478,27 +481,27 @@
 			toggleCatButton.textContent = areCatOpen
 				? "Collapse Categories"
 				: "Expand Categories";
-			const allCategories = document.querySelectorAll(
-				`#${OVERLAY_ID} .scanner-overlay__results > details`,
+			const allCategories = shadowRoot.querySelectorAll(
+				`.scanner-overlay__results > details`,
 			);
 			allCategories.forEach((details) => {
 				details.open = areCatOpen;
 			});
 		});
 
-		const toggleAllButton = document.getElementById("toggle-all-button");
+		const toggleAllButton = shadowRoot.getElementById("toggle-all-button");
 		let areAllOpen = false;
 		toggleAllButton.addEventListener("click", () => {
 			areAllOpen = !areAllOpen;
 			toggleAllButton.textContent = areAllOpen ? "Collapse All" : "Expand All";
-			const allCategories = document.querySelectorAll(
-				`#${OVERLAY_ID} .scanner-overlay__results > details`,
+			const allCategories = shadowRoot.querySelectorAll(
+				`.scanner-overlay__results > details`,
 			);
 			allCategories.forEach((details) => {
 				details.open = areAllOpen;
 			});
-			const allDetails = document.querySelectorAll(
-				`#${OVERLAY_ID} .finding-details`,
+			const allDetails = shadowRoot.querySelectorAll(
+				`.finding-details`,
 			);
 			allDetails.forEach((details) => {
 				details.open = areAllOpen;
@@ -521,7 +524,7 @@
   	`;
 		modal.querySelector("code").textContent = context;
 
-		document.getElementById(OVERLAY_ID).appendChild(modal);
+		shadowRoot.appendChild(modal);
 
 		modal.querySelector(".modal-close").onclick = () => modal.remove();
 		modal.onclick = (e) => {
@@ -534,7 +537,7 @@
 	function attachExportListener(results) {
 		exportController.abort();
 		exportController = new AbortController();
-		document.getElementById("export-button").addEventListener(
+		shadowRoot.getElementById("export-button").addEventListener(
 			"click",
 			() => {
 				if (!results) return;

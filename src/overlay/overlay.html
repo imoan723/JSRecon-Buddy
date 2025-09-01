@@ -1,21 +1,23 @@
-<header class="scanner-overlay__header">
-	<h1 class="scanner-overlay__title">
-		JS Recon Buddy
-		<span id="scan-status" class="scan-status-badge"></span>
-	</h1>
-	<div class="scanner-overlay__actions">
-		<button id="rescan-button" class="btn btn--secondary">Rescan</button>
-		<button id="toggle-cat-button" class="btn btn--primary">
-			Expand Categories
-		</button>
-		<button id="toggle-all-button" class="btn btn--primary">Expand All</button>
-		<button id="export-button" class="btn btn--primary" disabled>
-			Export JSON
-		</button>
-		<button id="close-button" class="btn btn--danger">Close</button>
-	</div>
-</header>
-<p class="scanner-overlay__description">
-	Findings from page scripts. Manual verification is advised.
-</p>
-<main class="scanner-overlay__results"></main>
+<div class="scanner">
+	<header class="scanner-overlay__header">
+		<h1 class="scanner-overlay__title">
+			JS Recon Buddy
+			<span id="scan-status" class="scan-status-badge"></span>
+		</h1>
+		<div class="scanner-overlay__actions">
+			<button id="rescan-button" class="btn btn--secondary">Rescan</button>
+			<button id="toggle-cat-button" class="btn btn--primary">
+				Expand Categories
+			</button>
+			<button id="toggle-all-button" class="btn btn--primary">Expand All</button>
+			<button id="export-button" class="btn btn--primary" disabled>
+				Export JSON
+			</button>
+			<button id="close-button" class="btn btn--danger">Close</button>
+		</div>
+	</header>
+	<p class="scanner-overlay__description">
+		Findings from page scripts. Manual verification is advised.
+	</p>
+	<main class="scanner-overlay__results"></main>
+</div>

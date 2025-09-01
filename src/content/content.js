@@ -151,15 +151,20 @@
 					}
 				}
 
-				updateOverlayHeader("Live Scan");
+				updateOverlayHeader("Live Scan", "live");
 				await performScan();
 			});
 	}
 
-	function updateOverlayHeader(titleText) {
+	function updateOverlayHeader(titleText, scanType = 'else') {
 		const statusSpan = shadowRoot.querySelector("#scan-status");
 		if (statusSpan) {
 			statusSpan.textContent = titleText;
+			if (scanType === 'live') {
+				statusSpan.classList.add('live-scan');
+			} else {
+				statusSpan.classList.remove('live-scan');
+			}
 		}
 	}
 

@@ -32,19 +32,25 @@ The scanner uses a set of regex patterns to identify and categorize potential se
 Since this extension is not on the Chrome Web Store, it must be loaded as an unpacked extension in developer mode.
 
 1. Download ZIP or clone this repository to your local machine.
-2. Open Google Chrome (or other chromium-based browser) and navigate to chrome://extensions.
-3. Turn on "Developer mode" using the toggle in the top-right corner.
-4. Click the "Load unpacked" button.
-5. Select the directory where you downloaded the repository. The extension will now be installed.
+   
+   > Unzip or Extract the ZIP file. This will create a new folder with the extension's files inside.
+3. Open Google Chrome (or other chromium-based browser) and navigate to chrome://extensions.
+4. Turn on "Developer mode" using the toggle in the top-right corner.
+5. Click the "Load unpacked" button.
+6. Select the directory where you cloned the repository or unzipped the archive.
+
+The extension will now be installed.
 
 ## How to Use
 
 1. Navigate to the target website.
 2. Click the extension icon in your browser's toolbar.
-3. (optional) Set your own parameters
+3. (optional) Configure custom parameters in the popup.
 4. Press 'Analyze page'
 5. An overlay will appear and automatically start scanning the page.
-6. Review the categorized findings!
+    - If you've analyzed this page before, it will instantly show the cached results (indicated in the top-left corner) while a new scan runs.
+    - You can rescan the page again if you want
+7. Review the categorized findings!
 
 ## Automatic Version Check
 

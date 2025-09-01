@@ -1,6 +1,6 @@
 (async function checkVersion() {
 	const GITHUB_MANIFEST_URL = 'https://raw.githubusercontent.com/TheArqsz/JSRecon-Buddy/main/manifest.json';
-	const CACHE_DURATION = 3600 * 1000;
+	const CACHE_DURATION = 6 * 60 * 60 * 1000;
 	const githubLink = document.querySelector('.github-link');
 	if (!githubLink) return;
 
@@ -24,12 +24,33 @@
 		const latestVersion = remoteManifest.version;
 
 		const currentVersion = chrome.runtime.getManifest().version;
-		if (latestVersion > currentVersion) {
+		if (compareVersions(latestVersion, currentVersion) > 0) {
 			githubLink.classList.add('update-available');
 			githubLink.setAttribute('title', `Version ${latestVersion} is available`);
 		}
 	} catch (error) {
 		console.warn('Could not check for new version:', error);
+	}
+
+	function compareVersions(v1, v2) {
+		const parts1 = v1.split('.').map(Number);
+		const parts2 = v2.split('.').map(Number);
+
+		const len = Math.max(parts1.length, parts2.length);
+
+		for (let i = 0; i < len; i++) {
+			const p1 = parts1[i] || 0;
+			const p2 = parts2[i] || 0;
+
+			if (p1 > p2) {
+				return 1;
+			}
+			if (p1 < p2) {
+				return -1;
+			}
+		}
+
+		return 0;
 	}
 })();
 

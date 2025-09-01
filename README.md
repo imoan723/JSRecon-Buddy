@@ -27,6 +27,23 @@ The scanner uses a set of regex patterns to identify and categorize potential se
 - Source Maps - finds links to source maps which can expose original source code.
 - JS Libraries - lists identified JavaScript libraries and their versions.
 
+## Why this exists?
+
+This project was inspired by the simple yet powerful JavaScript bookmarklets popular in the bug bounty community, such as:
+
+- https://x.com/grumpzsux/status/1830317635629949134
+- https://x.com/Evan_Connelly/status/1830407433480450318
+- https://github.com/0dayCTF/endlets
+- ...and more iterations of the similar nature
+
+While those are great for a quick look, they have a few key limitations:
+
+- Modifying a bookmarklet to add new patterns or change its functionality is a pain. 
+- Most are hardcoded to find specific things, like just endpoints. Adding new scanners for secrets or parameters isn't straightforward.
+- CORS...Bookmarklets [have hard time analyzing](https://medium.com/making-instapaper/bookmarklets-are-dead-d470d4bbb626) scripts from other domains, leaving major blind spots.
+
+JS Bounty Buddy was built to solve these problems. It takes the great idea of a recon bookmarklet and makes it more powerful.
+
 ## Examples
 
 - Extension's popup
@@ -76,15 +93,25 @@ The extension will now be installed or updated.
 
 ## Automatic Version Check
 
-The extension automatically checks for new versions. When you open the popup, it compares its own version against the [manifest.json](manifest.json) file in this GitHub repository. To avoid excessive requests, the latest version number is cached for one hour. If a newer version is available on GitHub, an asterisk will appear on the GitHub logo in the popup.
+The extension automatically checks for new versions. When you open the popup, it compares its own version against the [manifest.json](manifest.json) file in this GitHub repository. To avoid excessive requests, the latest version number is cached for 6 hours. If a newer version is available on GitHub, an asterisk will appear on the GitHub logo in the popup.
 
 <figure align="center">
 	<img src="./assets/new-version-av-tip.png" alt="New Version" width="40%"/>
 </figure>
 
+## Contributing
+
+Contributions are welcome! Whether it's a bug report, a feature request, or a pull request, all help is appreciated - get started [here](CONTRIBUTING.md).
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+The secret detection patterns in [rules.js](src/content/rules.js)were heavily inspired by [the comprehensive rule set](https://github.com/gitleaks/gitleaks/blob/master/config/gitleaks.toml) from the fantastic open-source project, Gitleaks, which I've adapted and expanded upon. A big thanks to the Gitleaks creators and contributors for providing such a great foundation, which is distributed under the MIT License.
+
+A special thanks goes to the many security researchers in the bug bounty community whose clever JavaScript bookmarklets were the original inspiration for this extension.
 
 ## Disclaimer
 

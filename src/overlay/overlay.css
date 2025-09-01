@@ -77,6 +77,11 @@
 	margin-left: 8px;
 }
 
+#scan-status.live-scan {
+	background-color: #98c379;
+	font-weight: bold;
+}
+
 .scanner-overlay__results {
 	max-height: 80vh;
 	overflow-y: auto;

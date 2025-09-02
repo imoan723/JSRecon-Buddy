@@ -343,7 +343,7 @@ export const secretRules = [
 		description:
 			"Detected a Generic API Key, potentially exposing access to various services and sensitive operations.",
 		regex:
-			/[\w.-]{0,50}?(?:access|auth|api|credential|creds|passw(?:or)?d|secret|token)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([\w.=-]{10,150}|[a-z0-9][a-z0-9+\/]{11,}={0,3})(?:[\x60'"\s;]|[\n\r]|$)/gi,
+			/[\w.-]{0,50}?(?:access|auth|api|credential|creds|passw(?:or)?d|secret|token)(?:[ \t\w.-]{0,20})[\s'"]{0,3}(?:=|>|:{1,3}=|\|\||:|=>|\?=|,)[\x60'"\s=]{0,5}([\w.=-]{10,150}|[a-z0-9][a-z0-9+\/]{11,}={0,3})(?:[\x60'"\s;&<>,]|[\n\r]|$)/gi,
 		entropy: 4.3,
 		group: 1,
 	},

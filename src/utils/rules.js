@@ -934,7 +934,7 @@ export const secretRules = [
 		id: "sourcegraph-access-token",
 		description: "Sourcegraph is a code search and navigation engine.",
 		regex:
-			/\b(sgp_(?:[a-fA-F0-9]{16}|local)_[a-fA-F0-9]{40}|sgp_[a-fA-F0-9]{40}|[a-fA-F0-9]{40})\b/gi,
+			/\b(sgp_(?:[a-fA-F0-9]{16}|local)_[a-fA-F0-9]{40}|sgp_[a-fA-F0-9]{40})\b/gi,
 		entropy: 3,
 		group: 1,
 	},
@@ -1020,7 +1020,7 @@ export const secretRules = [
 		id: "azure-tenant-id",
 		description: "Azure Tenant ID",
 		regex:
-			/(?:AZURE_TENANT_ID|azureTenantId|tenantId)["'\s:=]+([0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12})/gi,
+			/(?:AZURE_TENANT_ID|azureTenantId|tenantId|tenant_id)["'\s:=]+([0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12})/gi,
 		group: 1,
 	},
 	{

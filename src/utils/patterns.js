@@ -1,0 +1,61 @@
+
+
+import { secretRules } from './rules.js';
+
+/**
+ * Compiles all regex patterns for the scan.
+ * It combines static patterns with dynamic ones based on user settings and secret rules.
+ * @param {string[]} parameters - An array of user-defined "interesting parameters".
+ * @returns {object} An object containing all regex patterns, grouped by category.
+ */
+export function getPatterns(parameters) {
+	let patterns = {
+		Subdomains: {
+			regex:
+				/\b(?:https?:\/\/)?((?:[a-zA-Z0-9-]+\.)+[a-z]{2,63})(?:\/[^\s"'`]*)?/g,
+			group: 1,
+			context: "snippet",
+		},
+		Endpoints: {
+			regex: /(["'`])(\/(?!\/)[a-zA-Z0-9_?&=\/\-#.]*)\1/g,
+			group: 2,
+			context: "snippet",
+		},
+		"Source Maps": {
+			regex: /\/[#*]\s?sourceMappingURL=([^\s<]+)/g,
+			group: 1,
+			context: "line",
+		},
+		"JS Libraries": {
+			regex: /\/\*!?[ \n][a-zA-Z0-9\._\- ]+ v([0-9\.]+)/g,
+			group: 0,
+			context: "line",
+		},
+		"Potential DOM XSS Sinks": {
+			regex: /(innerHTML|outerHTML|document\.write)/g,
+			group: 1,
+			context: "snippet",
+		},
+		"Interesting Parameters": {
+			regex:
+				parameters && parameters.length > 0
+					? new RegExp(`[?&"']((${parameters.join("|")}))\\s*[:=]`, "gi")
+					: null,
+			group: 1,
+			context: "snippet",
+		}
+	};
+	for (const rule of secretRules) {
+		if (!patterns["Potential Secrets"]) {
+			patterns["Potential Secrets"] = [];
+		}
+		patterns["Potential Secrets"].push({
+			regex: new RegExp(rule.regex, "gi"),
+			group: rule.group ?? 0,
+			context: "snippet",
+			ruleId: rule.id,
+			ruleEntropy: rule.entropy ?? 0,
+		});
+	}
+	return patterns;
+}

@@ -26,7 +26,7 @@ At this point, you're ready to make your changes! Feel free to ask for help - ev
 
 ## Adding a New Scanner
 
-The extension is designed to be easily extensible. To add a new search "engine" or category of findings, you only need to modify two parts of [content.js](src/content/content.js):
+The extension is designed to be easily extensible. To add a new search "engine" or category of findings, you only need to modify two parts of [overlay.js](src/overlay/overlay.js):
 
 1. Add the Pattern
 
@@ -54,7 +54,7 @@ In the `renderResults` function, add a corresponding entry to the `sectionConfig
 
 ## Adding or Modifying Secret Rules
 
-The secret detection logic is powered by a list of rules in the [rules.js](src/content/rules.js) file. To add a new secret to detect, simply add a new object to the `secretRules` array in this file.
+The secret detection logic is powered by a list of rules in the [rules.js](src/utils/rules.js) file. To add a new secret to detect, simply add a new object to the `secretRules` array in this file.
 
 As an example, to add a rule for detecting Postman API keys, you would add the following object to the array:
 

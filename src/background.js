@@ -1,31 +1,42 @@
 import { secretRules } from './utils/rules.js';
 import { shannonEntropy } from './utils/entropy.js';
 
+const MAX_CONTENT_SIZE_BYTES = 4 * 1024 * 1024;
+
+/**
+ * @description A set to keep track of which URLs have already been scanned in a given tab.
+ * The key is a string in the format: `${tabId}|${url}`.
+ * This prevents redundant scans on the same page.
+ * @type {Set<string>}
+ */
+const scannedPages = new Set();
+
 /**
  * Listens for tab updates to trigger the passive scanning process.
  * It sets a "scanning" visual state when a page starts loading and
  * initiates the actual scan once the page is fully loaded.
  */
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-	if (changeInfo.status === 'loading' && tab.url && tab.url.startsWith('http')) {
-		chrome.storage.session.set({ [tabId]: { status: 'scanning' } });
-		chrome.action.setIcon({ tabId, path: 'icons/icon-scanning-128.png' });
-		chrome.action.setBadgeText({ tabId, text: '...' });
-		chrome.action.setBadgeBackgroundColor({ tabId, color: '#FDB813' });
-	} else if (changeInfo.status === 'complete' && tab.url && tab.url.startsWith('http')) {
-		chrome.scripting.executeScript({
-			target: { tabId: tabId },
-			function: scrapePageContent,
-		}, (injectionResults) => {
-			if (chrome.runtime.lastError || !injectionResults || !injectionResults.length) {
-				console.error("[JS Recon Buddy] Script injection failed:", chrome.runtime.lastError);
-				return;
-			}
-			const pageData = injectionResults[0].result;
-			if (pageData) {
-				runPassiveScan(pageData, tabId);
-			}
-		});
+	if (changeInfo.status === 'complete') {
+		triggerPassiveScan(tabId);
+	}
+});
+
+/**
+ * Listens for client-side navigations in Single Page Applications (e.g., React, Angular).
+ */
+chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
+	triggerPassiveScan(details.tabId);
+});
+
+/**
+ * Cleans up the scanned pages set when a tab is closed to prevent memory leaks.
+ */
+chrome.tabs.onRemoved.addListener((tabId) => {
+	for (const key of scannedPages) {
+		if (key.startsWith(`${tabId}|`)) {
+			scannedPages.delete(key);
+		}
 	}
 });
 
@@ -57,7 +68,54 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 		Promise.all(fetchPromises).then((results) => sendResponse(results));
 		return true;
 	}
+
+	if (request.type === 'FORCE_PASSIVE_RESCAN') {
+		triggerPassiveScan(request.tabId, true);
+		return;
+	}
 });
+
+/**
+ * Main function to trigger a passive scan on a tab if necessary.
+ * @param {number} tabId - The ID of the tab to potentially scan.
+ * @param {boolean} [force=false] - If true, bypasses the duplicate scan check.
+ */
+async function triggerPassiveScan(tabId, force = false) {
+	try {
+		const tab = await chrome.tabs.get(tabId);
+		if (!tab || !tab.url || !tab.url.startsWith('http')) {
+			return;
+		}
+
+		const pageKey = `${tab.id}|${tab.url}`;
+		if (scannedPages.has(pageKey) && !force) {
+			return;
+		}
+
+		chrome.storage.session.set({ [tabId]: { status: 'scanning' } });
+		chrome.action.setIcon({ tabId, path: 'icons/icon-scanning-128.png' });
+		chrome.action.setBadgeText({ tabId, text: '...' });
+		chrome.action.setBadgeBackgroundColor({ tabId, color: '#FDB813' });
+
+		const injectionResults = await chrome.scripting.executeScript({
+			target: { tabId: tab.id },
+			function: scrapePageContent,
+		});
+
+		if (injectionResults && injectionResults.length > 0) {
+			const pageData = injectionResults[0].result;
+			if (pageData) {
+				scannedPages.add(pageKey);
+				runPassiveScan(pageData, tab.id);
+			}
+		}
+	} catch (error) {
+		if (error.message.includes('No tab with id')) {
+			return;
+		}
+		console.error(`[JS Recon Buddy] Error triggering scan on tab ${tabId}:`, error);
+	}
+}
 
 /**
  * Fetches external scripts and performs a passive scan for secrets on all page content.
@@ -90,8 +148,14 @@ async function runPassiveScan(pageData, tabId) {
 	);
 
 	const findings = [];
+	const contentMap = {};
 
 	for (const { source, content } of allContentSources.filter(s => s.content)) {
+		const contentSize = new Blob([content]).size;
+		let isContentTooLarge = contentSize > MAX_CONTENT_SIZE_BYTES;
+		if (!isContentTooLarge) {
+			contentMap[source] = content;
+		}
 		for (const rule of secretRules) {
 			const matches = content.matchAll(rule.regex);
 			for (const match of matches) {
@@ -105,13 +169,34 @@ async function runPassiveScan(pageData, tabId) {
 					description: rule.description,
 					secret: secret,
 					source: source,
-					fullContent: content
+					isSourceTooLarge: isContentTooLarge
 				});
 			}
 		}
 	}
+	try {
+		await chrome.storage.session.set({
+			[tabId]: {
+				status: 'complete',
+				results: findings,
+				contentMap: contentMap
+			}
+		});
+	} catch (error) {
+		if (error.message.toLowerCase().includes('quota')) {
+			console.warn('[JS Recon Buddy] Session storage quota exceeded. Saving findings without source content as a fallback.');
 
-	await chrome.storage.session.set({ [tabId]: { status: 'complete', results: findings } });
+			await chrome.storage.session.set({
+				[tabId]: {
+					status: 'complete',
+					results: findings,
+					contentMap: {}
+				}
+			});
+		} else {
+			console.error('[JS Recon Buddy] Failed to save to session storage:', error);
+		}
+	}
 	updateActionUI(tabId, findings.length);
 }
 

@@ -18,6 +18,9 @@
 		);
 		const OVERLAY_ID = "bug-bounty-scanner-overlay";
 		const CACHE_KEY_PREFIX = "scan_cache_";
+		const CACHE_DURATION_MS = 2 * 60 * 60 * 1000;
+		const MAX_CACHE_SIZE_BYTES = 10 * 1024 * 1024;
+
 		let shadowRoot = null;
 		const DEFAULT_PARAMETERS = [
 			"redirect",
@@ -69,23 +72,39 @@
 		 */
 		async function getCachedResults() {
 			const key = getCacheKey();
-			const data = await chrome.storage.local.get(key);
-			if (!data[key]) return null;
+			const dataWrapper = await chrome.storage.local.get(key);
+			const cachedData = dataWrapper[key];
+			if (!cachedData || !cachedData.timestamp) {
+				return null;
+			}
+
+			if (!cachedData.contentMap) {
+				cachedData.contentMap = {};
+			}
+
+			const now = new Date().getTime();
+			const cacheAge = now - cachedData.timestamp;
+
+			if (cacheAge > CACHE_DURATION_MS) {
+				console.log("[JS Recon Buddy] Results cache is expired.");
+				return null;
+			}
 
 			const results = {};
-			for (const category in data[key].results) {
-				results[category] = new Map(Object.entries(data[key].results[category]));
+			for (const category in cachedData.results) {
+				results[category] = new Map(Object.entries(cachedData.results[category]));
 			}
-			return { ...data[key], results };
+			return { ...cachedData, results };
 		}
 
 		/**
 		 * Serializes and saves the scan results to local storage.
 		 * It converts Map objects into plain objects for storage.
 		 * @param {object} results - The scan results object, where values are Maps of findings.
+		 * @param {object} contentMap - The map of source content.
 		 * @returns {Promise<void>}
 		 */
-		async function setCachedResults(results) {
+		async function setCachedResults(results, contentMap) {
 			const key = getCacheKey();
 
 			const serializableResults = {};
@@ -95,12 +114,28 @@
 				}
 			}
 
-			await chrome.storage.local.set({
-				[key]: {
+			let dataToCache = {
+				results: serializableResults,
+				contentMap: contentMap,
+				timestamp: new Date().getTime()
+			};
+
+			const estimatedSize = new Blob([JSON.stringify(dataToCache)]).size;
+
+			if (estimatedSize > MAX_CACHE_SIZE_BYTES) {
+				console.warn(`[JS Recon Buddy] Total cache size (${Math.round(estimatedSize / 1024)} KB) exceeds limit. Caching results without source content.`);
+				dataToCache = {
 					results: serializableResults,
-					timestamp: new Date().toISOString(),
-				},
-			});
+					contentMap: {},
+					timestamp: new Date().getTime()
+				};
+			}
+
+			try {
+				await chrome.storage.local.set({ [key]: dataToCache });
+			} catch (error) {
+				console.warn(`[JS Recon Buddy] Failed to set cache for ${key}, even after size check:`, error);
+			}
 		}
 
 		/**
@@ -173,11 +208,11 @@
 
 				const PATTERNS = getPatterns(parameters);
 
-				const results = await processScriptsAsync(allScripts, PATTERNS, onProgressCallback);
+				const { results, contentMap } = await processScriptsAsync(allScripts, PATTERNS, onProgressCallback);
 
-				await setCachedResults(results);
+				await setCachedResults(results, contentMap);
 
-				renderResults(results);
+				renderResults(results, contentMap);
 			}, 100);
 		}
 
@@ -221,7 +256,7 @@
 						if (cachedData && cachedData.results) {
 							const timestamp = new Date(cachedData.timestamp).toLocaleString();
 							updateOverlayHeader(`Cached Scan (${timestamp})`);
-							renderResults(cachedData.results);
+							renderResults(cachedData.results, cachedData.contentMap);
 							return;
 						}
 					}
@@ -302,6 +337,7 @@
 				(acc, key) => ({ ...acc, [key]: new Map() }),
 				{},
 			);
+			const contentMap = {};
 
 			/**
 			 * Processes a single regex match, validates it, extracts context, and adds it to the results.
@@ -354,9 +390,15 @@
 				if (!results[name].has(finding)) {
 					results[name].set(finding, []);
 				}
+				const occurrence = {
+					source: source,
+					ruleId: ruleId,
+					index: match.index,
+					secretLength: finding.length
+				};
 				results[name]
 					.get(finding)
-					.push({ source, context: displayContext, fullContext, ruleId });
+					.push(occurrence);
 			};
 
 			/**
@@ -387,6 +429,9 @@
 				if (!code) return;
 
 				const decodedCode = decodeText(code);
+
+				contentMap[source] = decodedCode;
+
 				applyRulesToCode(decodedCode, source);
 
 				if (onProgress) {
@@ -417,7 +462,7 @@
 			};
 
 			await processChunk(0);
-			return results;
+			return { results, contentMap };
 		}
 
 		/**
@@ -458,8 +503,9 @@
 		/**
 		 * Renders the final, formatted results object into the overlay UI.
 		 * @param {object} results - The results object containing Maps of findings.
+		 * @param {object} contentMap - The map of source content, needed for context modals.
 		 */
-		function renderResults(results) {
+		function renderResults(results, contentMap) {
 			let expButton = shadowRoot.getElementById("export-button");
 			if (expButton) {
 				expButton.disabled = false;
@@ -550,6 +596,7 @@
 						formatter,
 						copySelector,
 						copyModifier,
+						contentMap
 					),
 				)
 				.join("");
@@ -562,7 +609,7 @@
 				totalFindings > 0 ? sectionsHTML : "<h2>No findings. All clear!</h2>",
 			);
 
-			attachEventListeners(results);
+			attachEventListeners(results, contentMap);
 		}
 
 		/**
@@ -570,7 +617,7 @@
 		 * This includes copy buttons, context viewers, and source map links.
 		 * @param {object} results - The results object, needed for some listener contexts.
 		 */
-		function attachEventListeners(results) {
+		function attachEventListeners(results, contentMap) {
 			const resultsContainer = shadowRoot.querySelector(
 				`.scanner-overlay__results`,
 			);
@@ -578,8 +625,16 @@
 				const target = event.target;
 
 				if (target.classList.contains("clickable-source")) {
-					const context = target.getAttribute("data-context");
-					if (context) showContextModal(context);
+					const source = target.dataset.source;
+					const index = parseInt(target.dataset.index, 10);
+					const length = parseInt(target.dataset.length, 10);
+					const fullCode = contentMap[source];
+					if (fullCode) {
+						const start = Math.max(0, index - 250);
+						const end = Math.min(fullCode.length, index + length + 250);
+						const context = `... ${fullCode.substring(start, end).replace(/\n/g, " ")} ...`;
+						showContextModal(context);
+					}
 					return;
 				}
 
@@ -886,6 +941,7 @@
 			formatter,
 			selector,
 			copyModifier,
+			contentMap
 		) {
 			if (!findingsMap || findingsMap.size === 0) return "";
 			let itemsHTML = "";
@@ -904,13 +960,13 @@
 					const subfindings = findingsByRule[ruleId];
 					itemsHTML += `<div class="sub-section"><details><summary>${ruleId} (${subfindings.length})</summary><ul>`;
 					subfindings.forEach(({ item, occurrences }) => {
-						itemsHTML += renderListItem(item, occurrences, formatter);
+						itemsHTML += renderListItem(item, occurrences, formatter, contentMap);
 					});
 					itemsHTML += `</ul></details></div>`;
 				}
 			} else {
 				findingsMap.forEach((occurrences, item) => {
-					itemsHTML += renderListItem(item, occurrences, formatter);
+					itemsHTML += renderListItem(item, occurrences, formatter, contentMap);
 				});
 			}
 
@@ -931,9 +987,10 @@
 		 * @param {string} item - The found item (e.g., the secret, the subdomain).
 		 * @param {Array<object>} occurrences - An array of objects detailing where the item was found.
 		 * @param {function} formatter - The formatting function for the item.
+		 * @param {object} contentMap - The map of source content.
 		 * @returns {string} The HTML string for the list item.
 		 */
-		function renderListItem(item, occurrences, formatter) {
+		function renderListItem(item, occurrences, formatter, contentMap) {
 
 			/**
 			 * Escapes HTML special characters in a string to prevent injection when rendering.
@@ -955,22 +1012,31 @@
 				: safeItem;
 			let occurrencesHTML = "";
 			const uniqueOccurrences = new Map(
-				occurrences.map((occ) => [occ.source + (occ.context || ""), occ]),
+				occurrences.map((occ) => [occ.source + '@' + occ.index, occ]),
 			);
 
-			uniqueOccurrences.forEach(({ source, context, fullContext }) => {
+			uniqueOccurrences.forEach(({ source, index, secretLength }) => {
 				const isLocal =
 					source.startsWith("Inline Script") || source === "Main HTML Document";
 				const isURL = source.startsWith("http");
 				let sourceHTML = `↳ ${escapeHTML(source)}`;
 				if (isURL) {
 					sourceHTML = `↳ <a href="${source}" target="_blank">${escapeHTML(source)}</a>`;
-				} else if (isLocal && fullContext) {
-					sourceHTML = `↳ <span class="clickable-source" data-context="${escapeHTML(fullContext)}">${escapeHTML(source)} (click to view)</span>`;
+				} else if (isLocal) {
+					sourceHTML = `↳ <span class="clickable-source" 
+						data-source="${escapeHTML(source)}" 
+						data-index="${index}" 
+						data-length="${secretLength}">${escapeHTML(source)} (click to view)</span>`;
 				}
 				occurrencesHTML += `<div>${sourceHTML}</div>`;
-				if (context && !isLocal) {
-					occurrencesHTML += `<code class="context-snippet">${escapeHTML(context)}</code>`;
+				if (!isLocal) {
+					const fullCode = contentMap[source];
+					if (fullCode) {
+						const start = Math.max(0, index - 40);
+						const end = Math.min(fullCode.length, index + secretLength + 40);
+						const context = `... ${fullCode.substring(start, end).replace(/\n/g, " ")} ...`;
+						occurrencesHTML += `<code class="context-snippet">${escapeHTML(context)}</code>`;
+					}
 				}
 			});
 

@@ -27,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 		scanButton.title = "This page cannot be scanned.";
 	}
 
-	loadAndRenderSecrets(activeTab.id);
+	loadAndRenderSecrets(activeTab.id, isScannable);
 
 	scanButton.addEventListener('click', () => {
 		chrome.runtime.sendMessage({
@@ -54,9 +54,10 @@ document.addEventListener('DOMContentLoaded', async () => {
  * Asynchronously fetches passive scan data from `chrome.storage.session` and
  * triggers the rendering of the findings list or status messages.
  * @param {number} tabId - The ID of the tab for which to load data.
+ * @param {boolean} [isScannable=true] - A flag indicating if the page can be scanned.
  * @returns {Promise<void>}
  */
-async function loadAndRenderSecrets(tabId) {
+async function loadAndRenderSecrets(tabId, isScannable = true) {
 	const findingsList = document.getElementById('findings-list');
 	if (!findingsList) return;
 
@@ -64,7 +65,7 @@ async function loadAndRenderSecrets(tabId) {
 
 	const data = await chrome.storage.session.get(tabId.toString());
 
-	renderContent(data[tabId], findingsList);
+	renderContent(data[tabId], findingsList, isScannable);
 }
 
 /**
@@ -81,7 +82,7 @@ function renderContent(storedData, findingsList, isScannable = true) {
 	const rescanButton = document.getElementById('rescan-passive-btn');
 
 	if (!isScannable) {
-		findingsList.innerHTML = '<div class="no-findings"><span>This page type (e.g., chrome://) cannot be scanned for secrets.</span></div>';
+		findingsList.innerHTML = '<div class="no-findings"><span>This page type (e.g., chrome://, edge://) cannot be scanned for secrets.</span></div>';
 		return;
 	}
 

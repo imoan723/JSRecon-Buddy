@@ -453,6 +453,35 @@
 	animation: spin 1s linear infinite;
 }
 
+.progress-container {
+	text-align: center;
+	padding: 20px;
+}
+
+.progress-bar-outline {
+	width: 100%;
+	background-color: var(--color-bg-primary);
+	border: 1px solid var(--color-border);
+	border-radius: 4px;
+	height: 20px;
+	margin-top: 10px;
+}
+
+.progress-bar-inner {
+	height: 100%;
+	width: 0%;
+	background-color: var(--color-accent);
+	border-radius: 3px;
+	transition: width 0.2s ease-in-out;
+}
+
+.progress-text {
+	display: block;
+	margin-top: 5px;
+	font-size: var(--font-size-sm);
+	color: var(--color-text-primary);
+}
+
 @keyframes spin {
 	to {
 		transform: rotate(360deg);

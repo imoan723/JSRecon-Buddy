@@ -124,13 +124,47 @@
 		}
 
 		/**
-		 * Orchestrates the core scanning process after the overlay is created.
+		 * Orchestrates the core scanning process. It first gathers all page
+		 * content to determine the total number of items to scan, then displays a
+		 * progress bar and processes the content, updating the UI in real-time.
 		 * @returns {Promise<void>}
 		 */
 		async function performScan() {
 			updateOverlayContent(
-				'<h2><span class="spinner"></span> Analyzing scripts...</h2>'
+				'<h2><span class="spinner"></span> Gathering scripts and website content...</h2>'
 			);
+			const allScripts = await gatherScripts();
+
+			const progressBarHTML = `
+        <div class="progress-container">
+            <h2>Analyzing ${allScripts.length} sources...</h2>
+            <div class="progress-bar-outline">
+                <div id="progress-bar-inner" class="progress-bar-inner"></div>
+            </div>
+            <span id="progress-text" class="progress-text">0 / ${allScripts.length}</span>
+        </div>
+    `;
+			updateOverlayContent(progressBarHTML);
+
+			const progressBarInner = shadowRoot.getElementById('progress-bar-inner');
+			const progressText = shadowRoot.getElementById('progress-text');
+
+			/**
+			 * @callback ProgressCallback
+			 * @description A callback function to report the progress of an operation.
+			 * @param {number} completed - The number of items that have been processed.
+			 * @param {number} total - The total number of items to process.
+			 * @returns {void}
+			 */
+			const onProgressCallback = (completed, total) => {
+				const percentage = total > 0 ? (completed / total) * 100 : 0;
+				if (progressBarInner) {
+					progressBarInner.style.width = `${percentage}%`;
+				}
+				if (progressText) {
+					progressText.textContent = `${completed} / ${total}`;
+				}
+			};
 
 			setTimeout(async () => {
 				const { parameters } = await chrome.storage.sync.get({
@@ -138,13 +172,13 @@
 				});
 
 				const PATTERNS = getPatterns(parameters);
-				const allScripts = await gatherScripts();
-				const results = await processScriptsAsync(allScripts, PATTERNS);
+
+				const results = await processScriptsAsync(allScripts, PATTERNS, onProgressCallback);
 
 				await setCachedResults(results);
 
 				renderResults(results);
-			}, 50);
+			}, 100);
 		}
 
 		/**
@@ -249,10 +283,11 @@
 		 * This function runs asynchronously in chunks to avoid freezing the page.
 		 * @param {Array<{source: string, code: string}>} scripts - The array of content to scan.
 		 * @param {object} patterns - The compiled regex patterns to apply.
+		 * @param {ProgressCallback} [onProgress] - Optional callback to report progress.
 		 * @returns {Promise<object>} A promise that resolves to the final results object,
 		 * with findings grouped by category in Maps.
 		 */
-		async function processScriptsAsync(scripts, patterns) {
+		async function processScriptsAsync(scripts, patterns, onProgress) {
 			const { currentHostname, baseDomain } = getDomainInfo();
 			const isValidSubdomain = (domain) =>
 				domain === currentHostname ||
@@ -347,12 +382,16 @@
 			 * Prepares and processes a single script object from the gathered content.
 			 * @param {{source: string, code: string}} script - The script object to process.
 			 */
-			const processSingleScript = (script) => {
+			const processSingleScript = (script, index) => {
 				let { code, source } = script;
 				if (!code) return;
 
 				const decodedCode = decodeText(code);
 				applyRulesToCode(decodedCode, source);
+
+				if (onProgress) {
+					onProgress(index + 1, scripts.length);
+				}
 			};
 
 			/**
@@ -366,7 +405,7 @@
 					const endIndex = Math.min(startIndex + 5, scripts.length);
 
 					for (let i = startIndex; i < endIndex; i++) {
-						processSingleScript(scripts[i]);
+						processSingleScript(scripts[i], i);
 					}
 
 					if (endIndex < scripts.length) {

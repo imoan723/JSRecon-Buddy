@@ -33,6 +33,13 @@
 			if (compareVersions(latestVersion, currentVersion) > 0) {
 				githubLink.classList.add('update-available');
 				githubLink.setAttribute('title', `Version ${latestVersion} is available`);
+			} else {
+				await chrome.storage.local.set({
+					versionCache: {
+						latestVersion: latestVersion,
+						timestamp: now
+					}
+				});
 			}
 		} catch (error) {
 			console.warn('Could not check for new version:', error);

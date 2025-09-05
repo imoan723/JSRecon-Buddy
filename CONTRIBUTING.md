@@ -12,9 +12,64 @@ There are many ways to contribute, from writing tutorials or blog posts, improvi
 * Keep feature versions as small as possible, preferably one new feature per version.
 * Be welcoming to newcomers and encourage diverse new contributors from all backgrounds.
 
-At this point, you're ready to make your changes! Feel free to ask for help - everyone is a beginner at first.
+## Commit Message Guidelines
 
-# Getting started
+This project uses [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#summary) to automate the release process and generate the [CHANGELOG.md](CHANGELOG.md) file. Following this format for your commit messages is essential, as it tells our automated system how to bump the version number and categorize your changes.
+
+### The Format
+
+Each commit message must follow this simple structure:
+
+```
+<type>: <description>
+```
+
+For example: `feat: add a new scanner for session storage`
+
+### Commit Types
+
+You must use one of the following types in your commit message prefix. Here are the most common ones we use:
+
+* **`feat`**: Use this for a **new feature**.
+    * *Example*: `feat: add passive rescan button to popup`
+    * *Effect*: Triggers a **minor** version release (e.g., 1.2.0 → 1.3.0).
+
+* **`fix`**: Use this for a **bug fix**.
+    * *Example*: `fix: prevent crash on pages with no scripts`
+    * *Effect*: Triggers a **patch** version release (e.g., 1.2.0 → 1.2.1).
+
+* **`docs`**: For changes to documentation only (like updating this file or the README).
+* **`style`**: For code style changes that don't affect logic (formatting, whitespace, etc.).
+* **`refactor`**: For code changes that don't add a feature or fix a bug (like improving the structure of a function).
+* **`chore`**: For changes to the build process or other maintenance tasks (like updating the GitHub Actions workflow).
+
+### Breaking Changes
+
+A "breaking change" is a change that is not backward-compatible. To mark a commit as a breaking change, add a `!` after the type. This will trigger a **major** version release (e.g., 1.2.0 → 2.0.0).
+
+* *Example*: `refactor!: remove support for legacy cache format`
+
+### Multiline Commits
+
+For changes that are more complex than a single line can describe, you can add an optional **body**. A blank line between the subject and the body is required.
+
+The body can provide more context about the problem and the solution. You can also add a **footer** to reference issue numbers.
+
+**Example:**
+
+```
+fix: properly update icon from in-memory cache
+
+The previous logic failed to use the Map correctly, causing a TypeError.
+This change uses map.get() to retrieve the cached finding count
+and updates the UI instantly upon tab activation.
+
+Closes #27
+```
+
+---
+
+At this point, you're ready to make your changes! Feel free to ask for help - everyone is a beginner at first.
 
 ## Standard Contributions
 

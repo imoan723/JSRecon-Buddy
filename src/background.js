@@ -4,12 +4,11 @@ import { shannonEntropy } from './utils/entropy.js';
 const MAX_CONTENT_SIZE_BYTES = 4 * 1024 * 1024;
 
 /**
- * @description A set to keep track of which URLs have already been scanned in a given tab.
+ * @description A map to keep track of which URLs have already been scanned in a given tab.
  * The key is a string in the format: `${tabId}|${url}`.
- * This prevents redundant scans on the same page.
- * @type {Set<string>}
+ * @type {Map<string, {}>}
  */
-const scannedPages = new Set();
+const scannedPages = new Map();
 
 /**
  * Listens for tab updates to trigger the passive scanning process.
@@ -23,6 +22,14 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 /**
+ * Listens for when the active tab changes.
+ * This ensures the icon is updated instantly when switching to a tab that has already been scanned.
+ */
+chrome.tabs.onActivated.addListener((activeInfo) => {
+	triggerPassiveScan(activeInfo.tabId);
+});
+
+/**
  * Listens for client-side navigations in Single Page Applications (e.g., React, Angular).
  */
 chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
@@ -33,7 +40,7 @@ chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
  * Cleans up the scanned pages set when a tab is closed to prevent memory leaks.
  */
 chrome.tabs.onRemoved.addListener((tabId) => {
-	for (const key of scannedPages) {
+	for (const key of scannedPages.keys()) {
 		if (key.startsWith(`${tabId}|`)) {
 			scannedPages.delete(key);
 		}
@@ -89,10 +96,22 @@ async function triggerPassiveScan(tabId, force = false) {
 
 		const pageKey = `${tab.id}|${tab.url}`;
 		if (scannedPages.has(pageKey) && !force) {
+			const cachedScan = scannedPages.get(pageKey);
+			updateActionUI(tab.id, cachedScan.findingsCount);
 			return;
 		}
 
-		chrome.storage.session.set({ [tabId]: { status: 'scanning' } });
+		const dataWrapper = await chrome.storage.session.get(pageKey);
+		const storedData = dataWrapper[pageKey];
+
+		if (storedData && storedData.status === 'complete' && !force) {
+			const findingsCount = storedData.results ? storedData.results.length : 0;
+			updateActionUI(tab.id, findingsCount);
+			scannedPages.set(pageKey, { findingsCount });
+			return;
+		}
+
+		chrome.storage.session.set({ [pageKey]: { status: 'scanning' } });
 		chrome.action.setIcon({ tabId, path: 'icons/icon-scanning-128.png' });
 		chrome.action.setBadgeText({ tabId, text: '...' });
 		chrome.action.setBadgeBackgroundColor({ tabId, color: '#FDB813' });
@@ -105,7 +124,6 @@ async function triggerPassiveScan(tabId, force = false) {
 		if (injectionResults && injectionResults.length > 0) {
 			const pageData = injectionResults[0].result;
 			if (pageData) {
-				scannedPages.add(pageKey);
 				runPassiveScan(pageData, tab.id);
 			}
 		}
@@ -174,9 +192,16 @@ async function runPassiveScan(pageData, tabId) {
 			}
 		}
 	}
+
+	const tab = await chrome.tabs.get(tabId);
+	if (!tab || !tab.url) return;
+
+	const pageKey = `${tabId}|${tab.url}`;
+	scannedPages.set(pageKey, { findingsCount: findings.length });
+
 	try {
 		await chrome.storage.session.set({
-			[tabId]: {
+			[pageKey]: {
 				status: 'complete',
 				results: findings,
 				contentMap: contentMap
@@ -187,7 +212,7 @@ async function runPassiveScan(pageData, tabId) {
 			console.warn('[JS Recon Buddy] Session storage quota exceeded. Saving findings without source content as a fallback.');
 
 			await chrome.storage.session.set({
-				[tabId]: {
+				[pageKey]: {
 					status: 'complete',
 					results: findings,
 					contentMap: {}

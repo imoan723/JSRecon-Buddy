@@ -1,9 +1,8 @@
 /**
- * @description The ID of the currently active tab, stored globally for access
- * by the storage change listener.
- * @type {number}
+ * @description The full active tab object, stored globally for access by various functions and listeners.
+ * @type {chrome.tabs.Tab}
  */
-let activeTabId;
+let activeTab;
 
 /**
  * @description Main entry point that runs when the popup's DOM is fully loaded.
@@ -20,19 +19,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 		console.error("[JS Recon Buddy] Could not get active tab.");
 		return;
 	}
-	activeTabId = activeTab.id;
 
 	if (!isScannable) {
 		scanButton.disabled = true;
 		scanButton.title = "This page cannot be scanned.";
 	}
 
-	loadAndRenderSecrets(activeTab.id, isScannable);
+	loadAndRenderSecrets(activeTab, isScannable);
 
 	scanButton.addEventListener('click', () => {
 		chrome.runtime.sendMessage({
 			type: 'SCAN_PAGE',
-			tabId: activeTabId
+			tabId: activeTab.id
 		});
 		window.close();
 	});
@@ -40,7 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	rescanPassiveButton.addEventListener('click', () => {
 		chrome.runtime.sendMessage({
 			type: 'FORCE_PASSIVE_RESCAN',
-			tabId: activeTabId
+			tabId: activeTab.id
 		});
 
 		const findingsList = document.getElementById('findings-list');
@@ -53,19 +51,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 /**
  * Asynchronously fetches passive scan data from `chrome.storage.session` and
  * triggers the rendering of the findings list or status messages.
- * @param {number} tabId - The ID of the tab for which to load data.
+ * @param {chrome.tabs.Tab} tab - The active tab object to load data for.
  * @param {boolean} [isScannable=true] - A flag indicating if the page can be scanned.
  * @returns {Promise<void>}
  */
-async function loadAndRenderSecrets(tabId, isScannable = true) {
+async function loadAndRenderSecrets(tab, isScannable = true) {
 	const findingsList = document.getElementById('findings-list');
 	if (!findingsList) return;
 
+	const pageKey = `${tab.id}|${tab.url}`;
+
 	findingsList.innerHTML = '<div class="no-findings"><span>Loading findings...</span></div>';
 
-	const data = await chrome.storage.session.get(tabId.toString());
+	const data = await chrome.storage.session.get(pageKey);
 
-	renderContent(data[tabId], findingsList, isScannable);
+	renderContent(data[pageKey], findingsList, isScannable);
 }
 
 /**
@@ -97,9 +97,9 @@ function renderContent(storedData, findingsList, isScannable = true) {
 			</button>
 		</div>`;
 		const reloadBtn = document.getElementById('reload-btn');
-		if (reloadBtn) {
+		if (reloadBtn && activeTab) {
 			reloadBtn.addEventListener('click', () => {
-				chrome.tabs.reload(activeTabId);
+				chrome.tabs.reload(activeTab.id);
 			});
 		}
 		return;
@@ -177,8 +177,10 @@ function renderContent(storedData, findingsList, isScannable = true) {
 chrome.storage.onChanged.addListener((changes, areaName) => {
 	const findingsList = document.getElementById('findings-list');
 
-	if (areaName === 'session' && changes[activeTabId] && findingsList) {
-		const updatedData = changes[activeTabId].newValue;
+	if (!activeTab) return;
+
+	if (areaName === 'session' && changes[activeTab.id] && findingsList) {
+		const updatedData = changes[activeTab.id].newValue;
 		renderContent(updatedData, findingsList);
 	}
 });

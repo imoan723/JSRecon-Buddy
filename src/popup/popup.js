@@ -5,6 +5,18 @@
 let activeTab;
 
 /**
+ * @description The active tab id object, stored globally for access by various functions and listeners.
+ * @type {number}
+ */
+let activeTabId;
+
+/**
+ * @description The active tab url object, stored globally for access by various functions and listeners.
+ * @type {string}
+ */
+let activeTabUrl;
+
+/**
  * @description Main entry point that runs when the popup's DOM is fully loaded.
  * It initializes the UI, disables the scan button for non-scannable pages,
  * attaches the main event listener, and triggers the initial rendering of secrets.
@@ -20,6 +32,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 		return;
 	}
 
+	activeTabId = activeTab.id;
+	activeTabUrl = activeTab.url;
+
 	if (!isScannable) {
 		scanButton.disabled = true;
 		scanButton.title = "This page cannot be scanned.";
@@ -30,7 +45,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	scanButton.addEventListener('click', () => {
 		chrome.runtime.sendMessage({
 			type: 'SCAN_PAGE',
-			tabId: activeTab.id
+			tabId: activeTabId
 		});
 		window.close();
 	});
@@ -38,7 +53,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 	rescanPassiveButton.addEventListener('click', () => {
 		chrome.runtime.sendMessage({
 			type: 'FORCE_PASSIVE_RESCAN',
-			tabId: activeTab.id
+			tabId: activeTabId
 		});
 
 		const findingsList = document.getElementById('findings-list');
@@ -97,9 +112,9 @@ function renderContent(storedData, findingsList, isScannable = true) {
 			</button>
 		</div>`;
 		const reloadBtn = document.getElementById('reload-btn');
-		if (reloadBtn && activeTab) {
+		if (reloadBtn) {
 			reloadBtn.addEventListener('click', () => {
-				chrome.tabs.reload(activeTab.id);
+				chrome.tabs.reload(activeTabId);
 			});
 		}
 		return;
@@ -177,10 +192,12 @@ function renderContent(storedData, findingsList, isScannable = true) {
 chrome.storage.onChanged.addListener((changes, areaName) => {
 	const findingsList = document.getElementById('findings-list');
 
-	if (!activeTab) return;
+	console.log(changes);
 
-	if (areaName === 'session' && changes[activeTab.id] && findingsList) {
-		const updatedData = changes[activeTab.id].newValue;
+	const pageKey = `${activeTabId}|${activeTabUrl}`;
+
+	if (areaName === 'session' && changes[pageKey] && findingsList) {
+		const updatedData = changes[pageKey].newValue;
 		renderContent(updatedData, findingsList);
 	}
 });

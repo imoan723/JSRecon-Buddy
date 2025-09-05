@@ -42,7 +42,7 @@
 				});
 			}
 		} catch (error) {
-			console.warn('Could not check for new version:', error);
+			console.warn('[JS Recon Buddy] Could not check for new version:', error);
 		}
 
 		/**

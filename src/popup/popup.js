@@ -24,7 +24,7 @@ let activeTabUrl;
 document.addEventListener('DOMContentLoaded', async () => {
 	const scanButton = document.getElementById('scan-button');
 	const rescanPassiveButton = document.getElementById('rescan-passive-btn');
-	const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+	[activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
 	const isScannable = activeTab.url && activeTab.url.startsWith('http');
 
 	if (!activeTab || !activeTab.id) {
@@ -191,9 +191,7 @@ function renderContent(storedData, findingsList, isScannable = true) {
  */
 chrome.storage.onChanged.addListener((changes, areaName) => {
 	const findingsList = document.getElementById('findings-list');
-
-	console.log(changes);
-
+	if (!activeTab) return;
 	const pageKey = `${activeTabId}|${activeTabUrl}`;
 
 	if (areaName === 'session' && changes[pageKey] && findingsList) {

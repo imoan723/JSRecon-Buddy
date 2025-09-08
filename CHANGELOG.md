@@ -1,137 +1,61 @@
-# Changelog
+## [1.4.7](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.4.6...v1.4.7) (2025-09-08)
 
-All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+### Bug Fixes
 
-## [1.4.6] - 2025-09-05
+* Added scan queue to be able to properly scan pages in order ([fa0358f](https://github.com/TheArqsz/JSRecon-Buddy/commit/fa0358fc0513cd1f1b8d1fc537412351de15926c))
+* Removed unnecessary logging and fixed global variable assignment ([41f9f6e](https://github.com/TheArqsz/JSRecon-Buddy/commit/41f9f6e283e0dec853a19083373bac36eab8d5dc))
 
-### Fixed
+## [1.4.6](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.4.5...v1.4.6) (2025-09-05)
 
-- The extension now properly updates passive scanning status
 
-## [1.4.5] - 2025-09-05
+### Bug Fixes
 
-### Fixed
+* proper content update on passive scanning ([f84c6eb](https://github.com/TheArqsz/JSRecon-Buddy/commit/f84c6ebdba383f979a330289fbfb41edd00a75d5))
 
-- The extension now properly refreshes on tabs' updated and activations
+## [1.4.5](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.4.4...v1.4.5) (2025-09-05)
 
-### Added
 
-- write permission to the release.yml action
+### Bug Fixes
 
-## [1.4.4] - 2025-09-04
+* edited version in manifest.json ([75d5207](https://github.com/TheArqsz/JSRecon-Buddy/commit/75d52074a89778334ff4228e1277eb4a6c5b90c4))
+* env -> secrets in release.yml ([a31200b](https://github.com/TheArqsz/JSRecon-Buddy/commit/a31200bba63cedb6b5cd4118ea6bb4988c9ee532))
+* Fixed the behaviour of the extension on active tabs and reloads ([dfd76f9](https://github.com/TheArqsz/JSRecon-Buddy/commit/dfd76f95174d2ace6144876b83c26e091ea3e56d))
 
-### Fixed
+## [1.4.4](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.4.3...v1.4.4) (2025-09-04)
 
-- isScannable was not being properly passed
 
-## [1.4.3] - 2025-09-04
+### Bug Fixes
 
-### Changed
+* Fixed isScannable not being passed ([833d484](https://github.com/TheArqsz/JSRecon-Buddy/commit/833d4841cc9f260c42b06164d6e3aa4f44c78e68))
+* Properly changed version in manifest.json ([f77f10f](https://github.com/TheArqsz/JSRecon-Buddy/commit/f77f10fc6f5d84ad6d42b2a2e913bade7daf5e20))
 
-- Popup UI (added force passive rescan button)
-- Handling of cached data (extension now properly handles big sources)
+## [1.4.3](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.4.2...v1.4.3) (2025-09-04)
 
-## [1.4.2] - 2025-09-03
 
-### Added
+### Bug Fixes
 
-- Simple progress bar was added to a full analysis mode
+* Cache handling and popup ui ([38fb776](https://github.com/TheArqsz/JSRecon-Buddy/commit/38fb776c6de78061e298f1ac67cde87cb9fcbd4b))
+* Properly set version in cache ([66714ba](https://github.com/TheArqsz/JSRecon-Buddy/commit/66714ba740e5cc9cc016e623c015a5a8425afb8c))
 
-## [1.4.1] - 2025-09-03
+## [1.4.2](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.0.0...v1.4.2) (2025-09-04)
 
-### Changed
 
-- sourcegraph-access-token rule was changed to be less noisy.
-- azure-tenant-id rule was changed to catch other format of tenant_id.
+### Features
 
-## [1.4.0] - 2025-09-03
+* added passive scanning and docstrings ([5b3e0af](https://github.com/TheArqsz/JSRecon-Buddy/commit/5b3e0afa60b7b5c611815b9192981f7f81157c6f))
+* Added source map deconstruction ([a538159](https://github.com/TheArqsz/JSRecon-Buddy/commit/a538159610b235098a6cb65ce55a73f79b429caf))
+* changed version handling to match semver versioning scheme ([a77d42e](https://github.com/TheArqsz/JSRecon-Buddy/commit/a77d42e72671c1f5c9c4cd7421c4770cc6301451))
 
-### Added
 
-- Parameters input from the popup was replaced with new passive secret scanning feature
-- Three new icons for 3 statuses of passive secret scanning
-- New html and css for `source-viewer` from passive secret scanning functionality
-- Docstrings for most of the functions
-- New file for `getPatterns`: `src/utils/patterns.js`
+### Bug Fixes
 
-### Changed
+* Changed color for Live scan status badge ([4294aa4](https://github.com/TheArqsz/JSRecon-Buddy/commit/4294aa4a57fe79ebf08895577172c675711767de))
+* Changed some rules in rules.js ([f38682b](https://github.com/TheArqsz/JSRecon-Buddy/commit/f38682bf046d7f2b84340824d56a1f97193d0b84))
+* Fixed regex for sourceMaps and changed the fileBrowsing logic ([01ba7e5](https://github.com/TheArqsz/JSRecon-Buddy/commit/01ba7e50de598b734abaa4727664a51f55ceee55))
+* Styles in overlay.css are no longer overwriting styles in the analyzed page ([906b6cf](https://github.com/TheArqsz/JSRecon-Buddy/commit/906b6cf381098e3fa7254812a4fdd94ea2afd9f5))
+* update manifest.json with new version ([1749a3d](https://github.com/TheArqsz/JSRecon-Buddy/commit/1749a3dcf517eeb79af59d20e5f189a83c1a91ea))
+* Updated regex for generic-api-key ([f8d8ca1](https://github.com/TheArqsz/JSRecon-Buddy/commit/f8d8ca160e91f2f984ff40b1c03f207da312915a))
 
-- Styles for popup to adhere to new functionality
-- Refactored file structure:
-	- Moved `entropy.js`, `rules.js` and `sourceMapParser.js` to `src/utils`
-	- Renamed `content.js` to `src/overlay/overlay.js`
-- README.md was updated to match changes
+## 1.0.0 (2025-08-29)
 
-## [1.3.1] - 2025-09-01
-
-### Changed
-
-- A regex for generic-api-key was tweaked to match common patterns in HTML.
-
-## [1.3.0] - 2025-09-01
-
-### Added
-
-- An ability to see sources deconstructed from source maps was added to Source Map module
-
-## [1.2.1] - 2025-09-01
-
-### Fixed
-
-- Styles in overlay.css overwriting styles in the analyzed page
-
-## [1.2.0] - 2025-09-01
-
-### Added
-
-- Contributing guidelines at [CONTRIBUTING.md](CONTRIBUTING.md)
-
-### Changed
-
-- Revised logic behind the versioning verification
-
-## [1.1.0] - 2025-09-01
-
-### Added
-
-- New Github workflow for creating releases
-
-### Changed
-
-- **Refactored the entire UI to use the Shadow DOM.** This provides complete CSS encapsulation, preventing style conflicts with host pages and ensuring a consistent, reliable user interface across all websites.
-- **Revised and improved component styles.** The UI has been updated for better layout, readability, and consistency, including fixes for minor alignment and overflow issues.
-- Added examples in the README.md 
-
-### Removed
-
--   Removed excessive and unnecessary `console.log` statements from the content script to provide a cleaner browser console for developers.
-
----
-
-## [1.0.0] - 2025-08-30
-
-### Added
-
-- **Initial public release.** A working Proof of Concept for the JS Recon Buddy extension.
-- Core scanning functionality for subdomains, endpoints, potential secrets, JS libraries, and source maps.
-- An injectable overlay UI to display scan results directly on the page.
-- Features for rescanning, exporting results to JSON, and viewing the context of each finding.
-
----
-
-[1.4.6]: https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.4.5...v1.4.6
-[1.4.5]: https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.4.4...v1.4.5
-[1.4.4]: https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.4.3...v1.4.4
-[1.4.3]: https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.4.2...v1.4.3
-[1.4.2]: https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.4.1...v1.4.2
-[1.4.1]: https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.4.0...v1.4.1
-[1.4.0]: https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.3.1...v1.4.0
-[1.3.1]: https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.3.0...v1.3.1
-[1.3.0]: https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.2.1...v1.3.0
-[1.2.1]: https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.2.0...v1.2.1
-[1.2.0]: https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.1.0...v1.2.0
-[1.1.0]: https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.0.0...v1.1.0
-[1.0.0]: https://github.com/TheArqsz/JSRecon-Buddy/releases/tag/v1.0.0

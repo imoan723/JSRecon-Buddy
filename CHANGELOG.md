@@ -1,3 +1,10 @@
+## [1.4.8](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.4.7...v1.4.8) (2025-09-08)
+
+
+### Bug Fixes
+
+* Added error handling for one of the scanning phases ([e05ab75](https://github.com/TheArqsz/JSRecon-Buddy/commit/e05ab7528c044c63da2bd3b3751c79d5ee2546cb))
+
 ## [1.4.7](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.4.6...v1.4.7) (2025-09-08)
 
 

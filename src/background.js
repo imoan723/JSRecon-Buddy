@@ -52,10 +52,7 @@ async function setIconWaiting(tabId) {
  * initiates the actual scan once the page is fully loaded.
  */
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
-	chrome.action.setIcon({ tabId, path: 'icons/icon-scanning-128.png' });
-	chrome.action.setTitle({ tabId, title: 'Passive scanning in progress...' });
-	chrome.action.setBadgeText({ tabId, text: '...' });
-	chrome.action.setBadgeBackgroundColor({ tabId, color: '#FDB813' });
+	setIconWaiting(tabId);
 	if (changeInfo.status !== 'loading' && changeInfo.status !== 'complete') {
 		return;
 	}
@@ -83,24 +80,16 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
  * This ensures the icon is updated instantly when switching to a tab that has already been scanned.
  */
 chrome.tabs.onActivated.addListener((activeInfo) => {
-	const tabId = activeInfo.tabId;
-	chrome.action.setIcon({ tabId, path: 'icons/icon-scanning-128.png' });
-	chrome.action.setTitle({ tabId, title: 'Passive scanning in progress...' });
-	chrome.action.setBadgeText({ tabId, text: '...' });
-	chrome.action.setBadgeBackgroundColor({ tabId, color: '#FDB813' });
-	triggerPassiveScan(tabId);
+	setIconWaiting(activeInfo.tabId);
+	triggerPassiveScan(activeInfo.tabId);
 });
 
 /**
  * Listens for client-side navigations in Single Page Applications (e.g., React, Angular).
  */
 chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
-	const tabId = details.tabId;
-	chrome.action.setIcon({ tabId, path: 'icons/icon-scanning-128.png' });
-	chrome.action.setTitle({ tabId, title: 'Passive scanning in progress...' });
-	chrome.action.setBadgeText({ tabId, text: '...' });
-	chrome.action.setBadgeBackgroundColor({ tabId, color: '#FDB813' });
-	triggerPassiveScan(tabId);
+	setIconWaiting(details.tabId);
+	triggerPassiveScan(details.tabId);
 });
 
 /**
@@ -120,32 +109,37 @@ chrome.tabs.onRemoved.addListener((tabId) => {
  * on-demand scan or fetching external scripts for a content script.
  */
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-	if (request.type === "SCAN_PAGE") {
-		const targetTabId = request.tabId;
-		chrome.scripting.insertCSS({
-			target: { tabId: targetTabId },
-			files: ["src/overlay/overlay.css"],
-		});
-		chrome.scripting.executeScript({
-			target: { tabId: targetTabId },
-			files: ["src/overlay/overlay.js"],
-		});
-	}
+	try {
+		if (request.type === "SCAN_PAGE") {
+			const targetTabId = request.tabId;
+			chrome.scripting.insertCSS({
+				target: { tabId: targetTabId },
+				files: ["src/overlay/overlay.css"],
+			});
+			chrome.scripting.executeScript({
+				target: { tabId: targetTabId },
+				files: ["src/overlay/overlay.js"],
+			});
+		}
 
-	if (request.type === "FETCH_SCRIPTS") {
-		const fetchPromises = request.urls.map((url) =>
-			fetch(url)
-				.then((res) => (res.ok ? res.text() : Promise.reject()))
-				.then((code) => ({ source: url, code }))
-				.catch(() => null),
-		);
-		Promise.all(fetchPromises).then((results) => sendResponse(results));
-		return true;
-	}
+		if (request.type === "FETCH_SCRIPTS") {
+			const fetchPromises = request.urls.map((url) =>
+				fetch(url)
+					.then((res) => (res.ok ? res.text() : Promise.reject()))
+					.then((code) => ({ source: url, code }))
+					.catch(() => null),
+			);
+			Promise.all(fetchPromises).then((results) => sendResponse(results));
+			return true;
+		}
 
-	if (request.type === 'FORCE_PASSIVE_RESCAN') {
-		triggerPassiveScan(request.tabId, true);
-		return;
+		if (request.type === 'FORCE_PASSIVE_RESCAN') {
+			triggerPassiveScan(request.tabId, true);
+			return;
+		}
+	} catch (error) {
+		if (error.message.includes('No tab with id')) return;
+		console.warn(`[JS Recon Buddy] Error in onMessage listener for tab ${tabId}:`, error);
 	}
 });
 

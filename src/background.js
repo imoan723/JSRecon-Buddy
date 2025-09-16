@@ -1,5 +1,4 @@
 import { secretRules } from './utils/rules.js';
-import { shannonEntropy } from './utils/entropy.js';
 
 const MAX_CONTENT_SIZE_BYTES = 4 * 1024 * 1024;
 
@@ -232,12 +231,64 @@ async function triggerPassiveScan(tabId, force = false) {
 }
 
 /**
- * Performs the main passive scan for secrets on all provided page content.
+ * A global promise that acts as a mutex to prevent race conditions during the
+ * creation of the offscreen document. If this variable is not null, it means
+ * a creation process is already in progress, and any subsequent calls to
+ * `getOrCreateOffscreenDocument` will wait for this promise to resolve instead
+ * of initiating a new creation process.
  *
- * This function fetches any external scripts, iterates through all content
- * sources (HTML, inline scripts, external scripts), applies the defined
- * secret-finding rules, and stores the results in session storage.
- * Finally, it updates the extension's action icon to reflect the number of findings.
+ * @type {Promise<void> | null}
+ */
+let creating;
+
+/**
+ * Ensures a single offscreen document exists, creating it only if necessary.
+ *
+ * This function is designed to be idempotent; it can be called multiple times,
+ * but it will only initiate the creation of an offscreen document if one does
+ * not already exist. It uses a global `creating` promise as a mutex to prevent
+ * race conditions where multiple asynchronous operations might try to create the
+ * document simultaneously. If creation is already in progress, subsequent calls
+ * will wait for the existing creation promise to resolve.
+ *
+ * @returns {Promise<void>} A promise that resolves once the offscreen
+ * document is confirmed to exist or has been successfully created.
+ */
+async function getOrCreateOffscreenDocument() {
+  const existingContexts = await chrome.runtime.getContexts({
+    contextTypes: ['OFFSCREEN_DOCUMENT']
+  });
+  if (existingContexts.length > 0) {
+    return;
+  }
+
+  if (creating) {
+    await creating;
+  } else {
+    try {
+      creating = chrome.offscreen.createDocument({
+        url: 'src/offscreen/offscreen.html',
+        reasons: ['WORKERS'],
+        justification: 'Perform CPU-intensive secret scanning via regex.',
+      });
+      await creating;
+    } catch (error) {
+      console.warn('[JS Recon Buddy] An error has occurred creating an offscreen document within the extension', error);
+    } finally {
+      creating = null;
+    }
+  }
+}
+
+/**
+ * Coordinates the passive scan for a given page.
+ *
+ * This function acts as the main orchestrator for a scan. It performs the
+ * I/O-bound tasks of gathering all page content (HTML, inline and external
+ * scripts). It then delegates the CPU-intensive work of running regular
+ * expressions to a separate process using the Offscreen API to avoid blocking
+ * the service worker. Finally, it receives the results, saves them to storage,
+ * and updates the extension's UI.
  *
  * @param {object} pageData The initial content scraped from the page.
  * @param {string} pageData.html The full outer HTML of the document.
@@ -245,17 +296,18 @@ async function triggerPassiveScan(tabId, force = false) {
  * @param {string[]} pageData.externalScripts An array of external script URLs.
  * @param {number} tabId The ID of the tab being scanned.
  * @param {string} pageKey The unique key ('${tabId}|${tab.url}') for this page, used for caching and storage.
- * @returns {Promise<void>} A promise that resolves when the scan is complete and the UI is updated.
+ * @returns {Promise<void>} A promise that resolves when the scan coordination is complete and the UI is updated.
  */
 async function runPassiveScan(pageData, tabId, pageKey) {
   if (!tabId) {
     return;
   }
   const allContentSources = [
-    { source: 'HTML Document', content: pageData.html },
+    { source: 'HTML Document', content: pageData.html, isTooLarge: false },
     ...pageData.inlineScripts.map((script, i) => ({
       source: `Inline Script #${i + 1}`,
       content: script,
+      isTooLarge: false
     })),
   ];
 
@@ -265,57 +317,74 @@ async function runPassiveScan(pageData, tabId, pageKey) {
         const response = await fetch(url);
         if (response.ok) {
           const content = await response.text();
-          allContentSources.push({ source: url, content });
+          allContentSources.push({ source: url, content, isTooLarge: false });
         }
       } catch (e) { }
     })
   );
 
-  const findings = [];
   const contentMap = {};
+  const sourcesForOffscreen = allContentSources
+    .filter(s => s.content)
+    .map(s => {
+      const contentSize = new Blob([s.content]).size;
+      const isTooLarge = contentSize > MAX_CONTENT_SIZE_BYTES;
+      if (!isTooLarge) {
+        contentMap[s.source] = s.content;
+      }
+      return { source: s.source, content: s.content, isTooLarge };
+    });
 
-  for (const { source, content } of allContentSources.filter(s => s.content)) {
-    const contentSize = new Blob([content]).size;
-    let isContentTooLarge = contentSize > MAX_CONTENT_SIZE_BYTES;
-    if (!isContentTooLarge) {
-      contentMap[source] = content;
+  await getOrCreateOffscreenDocument();
+
+  try {
+    await chrome.runtime.sendMessage({ type: 'ping', target: 'offscreen' });
+  } catch (e) {
+    console.warn(`[JS Recon Buddy] Offscreen document not responsive for tab ${tabId}.`, e);
+  }
+
+  const serializableRules = secretRules.map(rule => ({
+    ...rule,
+    regex: {
+      source: rule.regex.source,
+      flags: rule.regex.flags
     }
-    for (const rule of secretRules) {
-      const matches = content.matchAll(rule.regex);
-      for (const match of matches) {
-        const secret = match[rule.group || 0];
-        if (rule.entropy && shannonEntropy(secret) < rule.entropy) {
-          continue;
-        }
+  }));
+  const response = await chrome.runtime.sendMessage({
+    type: 'scanContent',
+    target: 'offscreen',
+    allContentSources: sourcesForOffscreen,
+    secretRules: serializableRules
+  });
 
-        findings.push({
-          id: rule.id,
-          description: rule.description,
-          secret: secret,
-          source: source,
-          isSourceTooLarge: isContentTooLarge
+  if (response && response.status === 'success') {
+    const findings = response.data;
+    scannedPages.set(pageKey, { findingsCount: findings.length });
+
+    try {
+      await chrome.storage.session.set({
+        [pageKey]: {
+          status: 'complete',
+          results: findings,
+          contentMap: contentMap,
+        }
+      });
+    } catch (error) {
+      if (error.message.toLowerCase().includes('quota')) {
+        await chrome.storage.session.set({
+          [pageKey]: { status: 'complete', results: findings, contentMap: {} }
         });
       }
     }
-  }
 
-  try {
-    await chrome.storage.session.set({
-      [pageKey]: {
-        status: 'complete',
-        results: findings,
-        contentMap: contentMap,
-      }
-    });
-  } catch (error) {
-    if (error.message.toLowerCase().includes('quota')) {
-      await chrome.storage.session.set({
-        [pageKey]: { status: 'complete', results: findings, contentMap: {} }
-      });
-    }
-  }
+    updateActionUI(tabId, findings.length);
+  } else {
+    console.warn(`[JS Recon Buddy] Offscreen scan failed for tab ${tabId}:`, response ? response.message : "No response received");
 
-  updateActionUI(tabId, findings.length);
+    updateActionUI(tabId, 0);
+    scannedPages.delete(pageKey);
+    await chrome.storage.session.remove(pageKey);
+  }
 }
 
 /**

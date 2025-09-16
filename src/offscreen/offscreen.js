@@ -16,37 +16,39 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendResponse({ status: 'ready' });
     return true;
   } else if (request.type === 'scanContent') {
-    try {
-      const { allContentSources, secretRules } = request;
-      const deserializedRules = secretRules.map(rule => ({
-        ...rule,
-        regex: new RegExp(rule.regex.source, rule.regex.flags)
-      }));
-      const findings = performScan(allContentSources, deserializedRules);
-      sendResponse({ status: 'success', data: findings });
-    } catch (error) {
-      console.warn("[JS Recon Buddy] An error has occured during offscreen scan:", error);
-      sendResponse({ status: 'error', message: error.message });
-    }
+    (async () => {
+      try {
+        const { allContentSources, secretRules } = request;
+        const deserializedRules = secretRules.map(rule => ({
+          ...rule,
+          regex: new RegExp(rule.regex.source, rule.regex.flags)
+        }));
+        const findings = await performScan(allContentSources, deserializedRules);
+        sendResponse({ status: 'success', data: findings });
+      } catch (error) {
+        console.warn("[JS Recon Buddy] An error has occured during offscreen scan:", error);
+        sendResponse({ status: 'error', message: error.message });
+      }
+    })();
+    return true;
   }
-  return true;
 });
 
 /**
- * Executes the CPU-intensive secret scanning logic against provided content.
+ * Executes the CPU-intensive secret scanning logic asynchronously.
  *
- * This function iterates through each content source and applies every defined
- * secret-finding rule. It uses `matchAll` for efficient regex matching and
- * performs an optional Shannon entropy check to reduce false positives.
+ * This function processes each content source and then yields control back to
+ * the event loop. This prevents it from blocking the thread for too long,
+ * allowing the extension to remain responsive to other events.
  *
  * @param {Array<{source: string, content: string, isTooLarge: boolean}>} allContentSources
  * An array of content objects to scan.
  * @param {Array<object>} secretRules
  * An array of rule objects containing live RegExp objects to match against the content.
- * @returns {Array<{id: string, description: string, secret: string, source: string, isTooLarge: boolean}>}
- * An array of finding objects, each detailing a potential secret that was discovered.
+ * @returns {Promise<Array<object>>}
+ * A promise that resolves with an array of finding objects.
  */
-function performScan(allContentSources, secretRules) {
+async function performScan(allContentSources, secretRules) {
   const findings = [];
   for (const { source, content, isTooLarge } of allContentSources) {
     for (const rule of secretRules) {
@@ -67,6 +69,7 @@ function performScan(allContentSources, secretRules) {
         });
       }
     }
+    await new Promise(resolve => setTimeout(resolve, 0));
   }
   return findings;
 }

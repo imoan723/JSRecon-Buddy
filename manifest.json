@@ -30,6 +30,9 @@
     {
       "resources": [
         "src/source-viewer/source-viewer.html",
+        "src/source-viewer/source-viewer.css",
+        "src/source-viewer/prism.css",
+        "src/source-viewer/prism.js",
         "src/overlay/overlay.html",
         "src/overlay/overlay.css",
         "src/utils/rules.js",

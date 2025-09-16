@@ -1,6 +1,6 @@
 import { secretRules } from './utils/rules.js';
 
-const MAX_CONTENT_SIZE_BYTES = 4 * 1024 * 1024;
+const MAX_CONTENT_SIZE_BYTES = 5 * 1024 * 1024;
 
 /**
  * @description A map to keep track of which URLs have already been scanned.
@@ -153,6 +153,13 @@ async function setInitialLoadingState(tabId) {
       await new Promise(r => setTimeout(r, 400));
       updateActionUI(tabId, findingsCount);
       scannedPages.set(pageKey, { findingsCount });
+      if (findingsCount == 0) {
+
+        storedData.contentMap = {};
+        try {
+          await chrome.storage.session.set({ [pageKey]: storedData });
+        } catch (error) { }
+      }
       return;
     }
 
@@ -197,6 +204,13 @@ async function triggerPassiveScan(tabId, force = false) {
 
     if (storedData && storedData.status === 'complete' && !force) {
       const findingsCount = storedData.results ? storedData.results.length : 0;
+      if (findingsCount == 0) {
+
+        storedData.contentMap = {};
+        try {
+          await chrome.storage.session.set({ [pageKey]: storedData });
+        } catch (error) { }
+      }
       updateActionUI(tab.id, findingsCount);
       scannedPages.set(pageKey, { findingsCount });
       return;
@@ -332,7 +346,7 @@ async function runPassiveScan(pageData, tabId, pageKey) {
       if (!isTooLarge) {
         contentMap[s.source] = s.content;
       }
-      return { source: s.source, content: s.content, isTooLarge };
+      return { source: s.source, content: s.content, isTooLarge: isTooLarge };
     });
 
   await getOrCreateOffscreenDocument();
@@ -359,16 +373,27 @@ async function runPassiveScan(pageData, tabId, pageKey) {
 
   if (response && response.status === 'success') {
     const findings = response.data;
-    scannedPages.set(pageKey, { findingsCount: findings.length });
+    const findingsCount = findings.length;
+    scannedPages.set(pageKey, { findingsCount: findingsCount });
 
     try {
-      await chrome.storage.session.set({
-        [pageKey]: {
-          status: 'complete',
-          results: findings,
-          contentMap: contentMap,
-        }
-      });
+      if (findingsCount == 0) {
+        await chrome.storage.session.set({
+          [pageKey]: {
+            status: 'complete',
+            results: findings,
+            contentMap: {},
+          }
+        });
+      } else {
+        await chrome.storage.session.set({
+          [pageKey]: {
+            status: 'complete',
+            results: findings,
+            contentMap: contentMap,
+          }
+        });
+      }
     } catch (error) {
       if (error.message.toLowerCase().includes('quota')) {
         await chrome.storage.session.set({

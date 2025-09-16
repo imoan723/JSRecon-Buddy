@@ -1,0 +1,14 @@
+pre[class*="language-"] {
+    margin: 0;
+
+    overflow: auto;
+    word-wrap: normal;
+    white-space: pre;
+}
+
+.highlight {
+    background-color: #882929;
+    color: #fff;
+    border-radius: 3px;
+    font-weight: bold;
+}

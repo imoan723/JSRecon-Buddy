@@ -22,45 +22,45 @@ let activeTabUrl;
  * attaches the main event listener, and triggers the initial rendering of secrets.
  */
 document.addEventListener('DOMContentLoaded', async () => {
-	const scanButton = document.getElementById('scan-button');
-	const rescanPassiveButton = document.getElementById('rescan-passive-btn');
-	[activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-	const isScannable = activeTab.url && activeTab.url.startsWith('http');
+  const scanButton = document.getElementById('scan-button');
+  const rescanPassiveButton = document.getElementById('rescan-passive-btn');
+  [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const isScannable = activeTab.url && activeTab.url.startsWith('http');
 
-	if (!activeTab || !activeTab.id) {
-		console.error("[JS Recon Buddy] Could not get active tab.");
-		return;
-	}
+  if (!activeTab || !activeTab.id) {
+    console.error("[JS Recon Buddy] Could not get active tab.");
+    return;
+  }
 
-	activeTabId = activeTab.id;
-	activeTabUrl = activeTab.url;
+  activeTabId = activeTab.id;
+  activeTabUrl = activeTab.url;
 
-	if (!isScannable) {
-		scanButton.disabled = true;
-		scanButton.title = "This page cannot be scanned.";
-	}
+  if (!isScannable) {
+    scanButton.disabled = true;
+    scanButton.title = "This page cannot be scanned.";
+  }
 
-	loadAndRenderSecrets(activeTab, isScannable);
+  loadAndRenderSecrets(activeTab, isScannable);
 
-	scanButton.addEventListener('click', () => {
-		chrome.runtime.sendMessage({
-			type: 'SCAN_PAGE',
-			tabId: activeTabId
-		});
-		window.close();
-	});
+  scanButton.addEventListener('click', () => {
+    chrome.runtime.sendMessage({
+      type: 'SCAN_PAGE',
+      tabId: activeTabId
+    });
+    window.close();
+  });
 
-	rescanPassiveButton.addEventListener('click', () => {
-		chrome.runtime.sendMessage({
-			type: 'FORCE_PASSIVE_RESCAN',
-			tabId: activeTabId
-		});
+  rescanPassiveButton.addEventListener('click', () => {
+    chrome.runtime.sendMessage({
+      type: 'FORCE_PASSIVE_RESCAN',
+      tabId: activeTabId
+    });
 
-		const findingsList = document.getElementById('findings-list');
-		if (findingsList) {
-			findingsList.innerHTML = '<div class="no-findings"><span>Rescanning...</span></div>';
-		}
-	});
+    const findingsList = document.getElementById('findings-list');
+    if (findingsList) {
+      findingsList.innerHTML = '<div class="no-findings"><span>Rescanning...</span></div>';
+    }
+  });
 });
 
 /**
@@ -71,16 +71,16 @@ document.addEventListener('DOMContentLoaded', async () => {
  * @returns {Promise<void>}
  */
 async function loadAndRenderSecrets(tab, isScannable = true) {
-	const findingsList = document.getElementById('findings-list');
-	if (!findingsList) return;
+  const findingsList = document.getElementById('findings-list');
+  if (!findingsList) return;
 
-	const pageKey = `${tab.id}|${tab.url}`;
+  const pageKey = `${tab.id}|${tab.url}`;
 
-	findingsList.innerHTML = '<div class="no-findings"><span>Loading findings...</span></div>';
+  findingsList.innerHTML = '<div class="no-findings"><span>Loading findings...</span></div>';
 
-	const data = await chrome.storage.session.get(pageKey);
+  const data = await chrome.storage.session.get(pageKey);
 
-	renderContent(data[pageKey], findingsList, isScannable);
+  renderContent(data[pageKey], findingsList, isScannable);
 }
 
 /**
@@ -93,16 +93,16 @@ async function loadAndRenderSecrets(tab, isScannable = true) {
  * @param {boolean} [isScannable=true] - A flag indicating if the page can be scanned.
  */
 function renderContent(storedData, findingsList, isScannable = true) {
-	findingsList.innerHTML = '';
-	const rescanButton = document.getElementById('rescan-passive-btn');
+  findingsList.innerHTML = '';
+  const rescanButton = document.getElementById('rescan-passive-btn');
 
-	if (!isScannable) {
-		findingsList.innerHTML = '<div class="no-findings"><span>This page type (e.g., chrome://, edge://) cannot be scanned for secrets.</span></div>';
-		return;
-	}
+  if (!isScannable) {
+    findingsList.innerHTML = '<div class="no-findings"><span>This page type (e.g., chrome://, edge://) cannot be scanned for secrets.</span></div>';
+    return;
+  }
 
-	if (!storedData || !storedData.status) {
-		findingsList.innerHTML = `
+  if (!storedData || !storedData.status) {
+    findingsList.innerHTML = `
 		<div class="no-findings">
 			This page needs to be reloaded.
 			<button id="reload-btn" class="btn-icon">
@@ -111,77 +111,81 @@ function renderContent(storedData, findingsList, isScannable = true) {
 			</svg>
 			</button>
 		</div>`;
-		const reloadBtn = document.getElementById('reload-btn');
-		if (reloadBtn) {
-			reloadBtn.addEventListener('click', () => {
-				chrome.tabs.reload(activeTabId);
-			});
-		}
-		return;
-	}
+    const reloadBtn = document.getElementById('reload-btn');
+    if (reloadBtn) {
+      reloadBtn.addEventListener('click', () => {
+        chrome.tabs.reload(activeTabId);
+      });
+    }
+    return;
+  }
 
-	if (storedData.status === 'scanning') {
-		findingsList.innerHTML = '<div class="no-findings"><span>Secret scanning in progress...</span></div>';
-		return;
-	}
+  if (storedData.status === 'scanning') {
+    findingsList.innerHTML = '<div class="no-findings"><span>Secret scanning in progress...</span></div>';
+    return;
+  }
 
-	const findings = storedData.results;
+  const findings = storedData.results;
 
-	const contentMap = storedData.contentMap || {};
+  const contentMap = storedData.contentMap || {};
 
-	if (rescanButton) {
-		rescanButton.style.display = 'inline-flex';
-	}
+  if (rescanButton) {
+    rescanButton.style.display = 'inline-flex';
+  }
 
-	if (!findings || findings.length === 0) {
-		findingsList.innerHTML = '<div class="no-findings"><span>No secrets found.</span></div>';
-		return;
-	}
+  if (!findings || findings.length === 0) {
+    findingsList.innerHTML = '<div class="no-findings"><span>No secrets found.</span></div>';
+    return;
+  }
 
-	const findingsCountSpan = document.getElementById('findings-count');
-	findingsCountSpan.innerText = `(${findings.length})`
+  const findingsCountSpan = document.getElementById('findings-count');
+  findingsCountSpan.innerText = `(${findings.length})`
 
-	for (const finding of findings) {
-		const card = document.createElement('div');
-		card.className = 'finding-card';
-		const truncatedSecret = finding.secret.length > 100 ? `${finding.secret.substring(0, 97)}...` : finding.secret;
-		let sourceFormatted = finding.source.startsWith('http')
-			? `<a target="_blank" href="${finding.source}">${finding.source}</a>`
-			: finding.source;
-		let description = finding.description
-			? `<p class="description">About: <span>${finding.description}</span></p>`
-			: '';
-		card.innerHTML = `
+  for (const finding of findings) {
+    const card = document.createElement('div');
+    card.className = 'finding-card';
+    const truncatedSecret = finding.secret.length > 100 ? `${finding.secret.substring(0, 97)}...` : finding.secret;
+    let sourceFormatted = finding.source.startsWith('http')
+      ? `<a target="_blank" href="${finding.source}">${finding.source}</a>`
+      : finding.source;
+    let description = finding.description
+      ? `<p class="description">About: <span>${finding.description}</span></p>`
+      : '';
+    card.innerHTML = `
       <h2>${finding.id}</h2>
       ${description}
       <p class="source">Source: <span>${sourceFormatted}</span></p>
       <p class="secret-found"><code>${truncatedSecret}</code></p>
     `;
 
-		const button = document.createElement('button');
-		button.className = 'btn btn-primary';
-		button.textContent = 'View Source';
-		if (finding.isSourceTooLarge) {
-			button.disabled = true;
-			button.title = 'Source file is too large to be displayed.';
-		} else {
-			button.onclick = () => {
-				const viewerUrl = chrome.runtime.getURL('src/source-viewer/source-viewer.html');
-				const fullContent = contentMap[finding.source];
-				if (!fullContent) {
-					console.error("[JS Recon Buddy] Could not find content for source:", finding.source);
-					return;
-				}
-				const data = { content: fullContent, secret: finding.secret };
-				const hash = encodeURIComponent(JSON.stringify(data));
-				chrome.tabs.create({ url: `${viewerUrl}#${hash}` });
-				window.close();
-			};
-		}
+    const button = document.createElement('button');
+    button.className = 'btn btn-primary';
+    button.textContent = 'View Source';
+    if (finding.isSourceTooLarge || !contentMap[finding.source]) {
+      button.disabled = true;
+      button.title = 'Source file is too large to be displayed.';
+    } else {
+      button.onclick = async () => {
+        const viewerUrl = chrome.runtime.getURL('src/source-viewer/source-viewer.html');
+        const fullContent = contentMap[finding.source];
+        if (!fullContent) {
+          console.warn("[JS Recon Buddy] Could not find content for source:", finding.source);
+          return;
+        }
 
-		card.appendChild(button);
-		findingsList.appendChild(card);
-	}
+        const storageKey = `source-viewer-${Date.now()}`;
+        const dataToStore = { content: fullContent, secret: finding.secret, source: finding.source };
+        await chrome.storage.local.set({ [storageKey]: dataToStore });
+
+        chrome.tabs.create({ url: `${viewerUrl}#${storageKey}` });
+
+        window.close();
+      };
+    }
+
+    card.appendChild(button);
+    findingsList.appendChild(card);
+  }
 }
 
 /**
@@ -190,12 +194,12 @@ function renderContent(storedData, findingsList, isScannable = true) {
  * content dynamically without needing to reopen it.
  */
 chrome.storage.onChanged.addListener((changes, areaName) => {
-	const findingsList = document.getElementById('findings-list');
-	if (!activeTab) return;
-	const pageKey = `${activeTabId}|${activeTabUrl}`;
+  const findingsList = document.getElementById('findings-list');
+  if (!activeTab) return;
+  const pageKey = `${activeTabId}|${activeTabUrl}`;
 
-	if (areaName === 'session' && changes[pageKey] && findingsList) {
-		const updatedData = changes[pageKey].newValue;
-		renderContent(updatedData, findingsList);
-	}
+  if (areaName === 'session' && changes[pageKey] && findingsList) {
+    const updatedData = changes[pageKey].newValue;
+    renderContent(updatedData, findingsList);
+  }
 });

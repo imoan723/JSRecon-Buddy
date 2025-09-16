@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.5.0...v1.5.1) (2025-09-16)
+
+
+### Bug Fixes
+
+* Removed race condition issue for passive scanning ([4c20d14](https://github.com/TheArqsz/JSRecon-Buddy/commit/4c20d1415e6075d54f55232591f37d356697cf19))
+
 ## [1.5.0](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.4.8...v1.5.0) (2025-09-16)
 
 

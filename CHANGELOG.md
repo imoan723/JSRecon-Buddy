@@ -1,3 +1,16 @@
+## [1.5.0](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.4.8...v1.5.0) (2025-09-16)
+
+
+### Features
+
+* Added support for Offscreen API that allows the extension to be executed async in multiple tabs at once ([76f3cb2](https://github.com/TheArqsz/JSRecon-Buddy/commit/76f3cb23fc8470a4ccd30e96e37c66973fc81757))
+
+
+### Bug Fixes
+
+* Fixed responsiveness of the extension by making passive scanning async ([3cb04bb](https://github.com/TheArqsz/JSRecon-Buddy/commit/3cb04bbe027d082d8d01a412330d9c346419d886))
+* Fixed the behavior of icon not being set properly and scanning not updating the results ([96b7623](https://github.com/TheArqsz/JSRecon-Buddy/commit/96b76231c519f3ff1ad39f9d584984432bae8038))
+
 ## [1.4.8](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.4.7...v1.4.8) (2025-09-08)
 
 

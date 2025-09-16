@@ -10,68 +10,34 @@ const MAX_CONTENT_SIZE_BYTES = 4 * 1024 * 1024;
 const scannedPages = new Map();
 
 /**
- * @description A queue to manage pending scan jobs.
- * @type {Array<{pageData: object, tabId: number}>}
+ * @description A map to track scan promises currently in progress for each tab.
+ * This prevents starting a new scan on a tab that is already being scanned.
+ * @type {Map<number, Promise<void>>}
  */
-const scanQueue = [];
+const scansInProgress = new Map();
 
 /**
- * @description A flag to ensure only one scan runs at a time.
- * @type {boolean}
- */
-let isScanInProgress = false;
-
-/**
- * Sets the action icon to a "scanning" or "waiting" state for a specific tab,
- * after verifying the tab is scannable.
- * @param {number} tabId The ID of the tab to update.
- * @returns {Promise<void>}
- */
-async function setIconWaiting(tabId) {
-  try {
-    const tab = await chrome.tabs.get(tabId);
-
-    if (!tab || !tab.url || !tab.url.startsWith('http')) {
-      return;
-    }
-
-    chrome.action.setIcon({ tabId, path: 'icons/icon-scanning-128.png' });
-    chrome.action.setTitle({ tabId, title: 'Passive scanning in progress...' });
-    chrome.action.setBadgeText({ tabId, text: '...' });
-    chrome.action.setBadgeBackgroundColor({ tabId, color: '#FDB813' });
-
-  } catch (error) {
-    if (error.message.includes('No tab with id')) return;
-    console.error(`[JS Recon Buddy] Error in setIconWaiting for tab ${tabId}:`, error);
-  }
-}
-
-/**
- * Listens for tab updates to trigger the passive scanning process.
+ * Listens for tab updates to trigger the initial scanning process status.
  * It sets a "scanning" visual state when a page starts loading and
  * initiates the actual scan once the page is fully loaded.
  */
-chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
-  setIconWaiting(tabId);
-  if (changeInfo.status !== 'loading' && changeInfo.status !== 'complete') {
-    return;
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'loading' && tab && tab.url && tab.url.startsWith('http')) {
+    setInitialLoadingState(tabId);
   }
-  try {
-    const tab = await chrome.tabs.get(tabId);
+});
 
-    if (!tab || !tab.url || !tab.url.startsWith('http')) {
-      return;
-    }
-
-    if (changeInfo.status === 'loading') {
-      const pageKey = `${tabId}|${tab.url}`;
-      await chrome.storage.session.set({ [pageKey]: { status: 'scanning' } });
-    } else if (changeInfo.status === 'complete') {
-      triggerPassiveScan(tabId);
-    }
-  } catch (error) {
-    if (error.message.includes('No tab with id')) return;
-    console.warn(`[JS Recon Buddy] Error in onUpdated listener for tab ${tabId}:`, error);
+/**
+ * Listens for the successful completion of a page's main document navigation.
+ *
+ * This serves as the primary and most reliable trigger to start the actual
+ * passive scan by calling `triggerPassiveScan`. It specifically checks that
+ * the event is for the main frame (`frameId === 0`) to avoid incorrectly
+ * triggering new scans for every iframe that finishes loading on the page.
+ */
+chrome.webNavigation.onCompleted.addListener((details) => {
+  if (details.frameId === 0) {
+    triggerPassiveScan(details.tabId);
   }
 });
 
@@ -80,7 +46,6 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
  * This ensures the icon is updated instantly when switching to a tab that has already been scanned.
  */
 chrome.tabs.onActivated.addListener((activeInfo) => {
-  setIconWaiting(activeInfo.tabId);
   triggerPassiveScan(activeInfo.tabId);
 });
 
@@ -88,8 +53,9 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
  * Listens for client-side navigations in Single Page Applications (e.g., React, Angular).
  */
 chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
-  setIconWaiting(details.tabId);
-  triggerPassiveScan(details.tabId);
+  if (details.frameId === 0) {
+    triggerPassiveScan(details.tabId);
+  }
 });
 
 /**
@@ -99,9 +65,10 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   for (const key of scannedPages.keys()) {
     if (key.startsWith(`${tabId}|`)) {
       scannedPages.delete(key);
-      chrome.storage.session.remove(key);
+      chrome.storage.session.remove(key).catch(e => console.warn(e));
     }
   }
+  scansInProgress.delete(tabId);
 });
 
 /**
@@ -135,13 +102,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     if (request.type === 'FORCE_PASSIVE_RESCAN') {
+      const { tabId } = request;
       for (const key of scannedPages.keys()) {
-        if (key.startsWith(`${request.tabId}|`)) {
+        if (key.startsWith(`${tabId}|`)) {
           scannedPages.delete(key);
         }
       }
-      setIconWaiting(request.tabId);
-      triggerPassiveScan(request.tabId, true);
+      triggerPassiveScan(tabId, true);
       return;
     }
   } catch (error) {
@@ -151,27 +118,54 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 /**
- * The "worker" function that processes one scan job from the queue at a time.
- * @returns {Promise<void>}
+ * Manages the initial UI and state of a tab as it begins to load.
+ *
+ * This function is the first to act when a tab navigation starts. It checks
+ * if complete scan results for the given URL are already stored in session
+ * storage.
+ *
+ * - If cached results are found, it immediately restores the UI (icon, badge)
+ * to reflect those findings and exits, preventing an unnecessary re-scan.
+ * A brief delay is introduced to prevent potential UI flickering during
+ * rapid page loads.
+ *
+ * - If no results are found, it sets the UI to a "scanning in progress" state
+ * and updates the session storage, so the popup displays the correct status
+ * while waiting for the scan to complete.
+ *
+ * @param {number} tabId The ID of the tab that has started loading.
+ * @returns {Promise<void>} A promise that resolves once the initial state has been set.
  */
-async function processScanQueue() {
-  if (isScanInProgress) {
-    console.warn("Waiting for other scan to finish");
-    return;
-  } else if (scanQueue.length === 0) {
-    return;
-  }
-
-  isScanInProgress = true;
-  const job = scanQueue.shift();
-
+async function setInitialLoadingState(tabId) {
   try {
-    await runPassiveScan(job.pageData, job.tabId);
+    const tab = await chrome.tabs.get(tabId);
+    if (!tab || !tab.url || !tab.url.startsWith('http') ||
+      tab.url.startsWith('https://chrome.google.com/webstore')) {
+      return;
+    }
+
+    const pageKey = `${tabId}|${tab.url}`;
+
+    const dataWrapper = await chrome.storage.session.get(pageKey);
+    const storedData = dataWrapper[pageKey];
+
+    if (storedData && storedData.status === 'complete') {
+      const findingsCount = storedData.results ? storedData.results.length : 0;
+      await new Promise(r => setTimeout(r, 400));
+      updateActionUI(tabId, findingsCount);
+      scannedPages.set(pageKey, { findingsCount });
+      return;
+    }
+
+    chrome.action.setIcon({ tabId, path: 'icons/icon-scanning-128.png' });
+    chrome.action.setBadgeText({ tabId, text: '...' });
+    chrome.action.setBadgeBackgroundColor({ tabId, color: '#FDB813' });
+    chrome.action.setTitle({ tabId, title: 'Page loading, preparing to scan...' });
+    await chrome.storage.session.set({ [pageKey]: { status: 'scanning' } });
+
   } catch (error) {
-    console.warn(`[JS Recon Buddy] Issue during scan for tab ${job.tabId}:`, error);
-  } finally {
-    isScanInProgress = false;
-    processScanQueue();
+    if (error.message.includes('No tab with id')) return;
+    console.warn(`[JS Recon Buddy] Error setting initial loading state for tab ${tabId}:`, error);
   }
 }
 
@@ -182,8 +176,13 @@ async function processScanQueue() {
  */
 async function triggerPassiveScan(tabId, force = false) {
   try {
+    if (scansInProgress.has(tabId) && !force) {
+      return;
+    }
     const tab = await chrome.tabs.get(tabId);
-    if (!tab || !tab.url || !tab.url.startsWith('http')) {
+    if (!tab || !tab.url ||
+      !tab.url.startsWith('http') ||
+      tab.url.startsWith('https://chrome.google.com/webstore')) {
       return;
     }
 
@@ -204,19 +203,27 @@ async function triggerPassiveScan(tabId, force = false) {
       return;
     }
 
-    const injectionResults = await chrome.scripting.executeScript({
-      target: { tabId: tab.id },
-      function: scrapePageContent,
-    });
+    const scanPromise = (async () => {
+      await setIconAndState(tabId, 'scanning');
 
-    if (injectionResults && injectionResults.length > 0) {
-      const pageData = injectionResults[0].result;
-      if (pageData) {
-        scanQueue.push({ pageData, tabId: tab.id });
-        processScanQueue();
+      const injectionResults = await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: scrapePageContent,
+      });
+
+      if (injectionResults && injectionResults[0] && injectionResults[0].result) {
+        await runPassiveScan(injectionResults[0].result, tab.id, pageKey);
+      } else {
+        await setIconAndState(tabId, 'idle');
       }
-    }
+    })();
+
+    scansInProgress.set(tabId, scanPromise);
+    scanPromise.finally(() => {
+      scansInProgress.delete(tabId);
+    });
   } catch (error) {
+    scansInProgress.delete(tabId);
     if (error.message.includes('No tab with id')) {
       return;
     }
@@ -225,15 +232,22 @@ async function triggerPassiveScan(tabId, force = false) {
 }
 
 /**
- * Fetches external scripts and performs a passive scan for secrets on all page content.
- * @param {object} pageData - The initial data scraped from the page.
- * @param {string} pageData.html - The full outer HTML of the document.
- * @param {string[]} pageData.inlineScripts - An array of inline script contents.
- * @param {string[]} pageData.externalScripts - An array of external script URLs.
- * @param {number} tabId - The ID of the tab being scanned.
+ * Performs the main passive scan for secrets on all provided page content.
+ *
+ * This function fetches any external scripts, iterates through all content
+ * sources (HTML, inline scripts, external scripts), applies the defined
+ * secret-finding rules, and stores the results in session storage.
+ * Finally, it updates the extension's action icon to reflect the number of findings.
+ *
+ * @param {object} pageData The initial content scraped from the page.
+ * @param {string} pageData.html The full outer HTML of the document.
+ * @param {string[]} pageData.inlineScripts An array of inline script contents.
+ * @param {string[]} pageData.externalScripts An array of external script URLs.
+ * @param {number} tabId The ID of the tab being scanned.
+ * @param {string} pageKey The unique key ('${tabId}|${tab.url}') for this page, used for caching and storage.
  * @returns {Promise<void>} A promise that resolves when the scan is complete and the UI is updated.
  */
-async function runPassiveScan(pageData, tabId) {
+async function runPassiveScan(pageData, tabId, pageKey) {
   if (!tabId) {
     return;
   }
@@ -284,45 +298,54 @@ async function runPassiveScan(pageData, tabId) {
       }
     }
   }
-  let pageKey, tab;
-  try {
-    tab = await chrome.tabs.get(tabId);
-    if (!tab || !tab.url) return;
 
-    pageKey = `${tabId}|${tab.url}`;
-    scannedPages.set(pageKey, { findingsCount: findings.length });
-  } catch (error) {
-    if (error.message.includes('No tab with id')) {
-      console.warn("[JS Recon Buddy] The tab that we were working on was prematurely closed")
-      return;
-    } else {
-      console.warn("[JS Recon Buddy] There was an uncaught error when scanning a page: ", error)
-    }
-  }
   try {
     await chrome.storage.session.set({
       [pageKey]: {
         status: 'complete',
         results: findings,
-        contentMap: contentMap
+        contentMap: contentMap,
       }
     });
   } catch (error) {
     if (error.message.toLowerCase().includes('quota')) {
-      console.warn('[JS Recon Buddy] Session storage quota exceeded. Saving findings without source content as a fallback.');
-
       await chrome.storage.session.set({
-        [pageKey]: {
-          status: 'complete',
-          results: findings,
-          contentMap: {}
-        }
+        [pageKey]: { status: 'complete', results: findings, contentMap: {} }
       });
-    } else {
-      console.error('[JS Recon Buddy] Failed to save to session storage:', error);
     }
   }
+
   updateActionUI(tabId, findings.length);
+}
+
+/**
+ * Centralized function to set the action icon and the storage state.
+ * This ensures the icon and popup UI are always synchronized.
+ * @param {number} tabId
+ * @param {'scanning' | 'idle'} state
+ */
+async function setIconAndState(tabId, state) {
+  try {
+    if (state === 'scanning') {
+      chrome.action.setIcon({ tabId, path: 'icons/icon-scanning-128.png' });
+      chrome.action.setTitle({ tabId, title: 'Passive scanning in progress...' });
+      chrome.action.setBadgeText({ tabId, text: '...' });
+      chrome.action.setBadgeBackgroundColor({ tabId, color: '#FDB813' });
+
+      const tab = await chrome.tabs.get(tabId);
+      if (tab && tab.url) {
+        const pageKey = `${tabId}|${tab.url}`;
+        await chrome.storage.session.set({ [pageKey]: { status: 'scanning' } });
+      }
+    } else {
+      chrome.action.setIcon({ tabId, path: 'icons/icon-notfound-128.png' });
+      chrome.action.setTitle({ tabId, title: '' });
+      chrome.action.setBadgeText({ tabId, text: '' });
+    }
+  } catch (error) {
+    if (error.message.includes('No tab with id')) return;
+    console.warn(`[JS Recon Buddy] Error in setIconAndState for tab ${tabId}:`, error);
+  }
 }
 
 /**

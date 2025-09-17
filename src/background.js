@@ -16,12 +16,38 @@ const scannedPages = new Map();
 const scansInProgress = new Map();
 
 /**
+ * @description A set of tab IDs that have been closed while a scan was in
+ * progress. This acts as a cancellation flag to prevent completed scans
+ * from saving data for tabs that no longer exist.
+ * @type {Set<number>}
+ */
+const removedTabs = new Set();
+
+/**
+ * Determines if a given URL is scannable by the extension.
+ *
+ * A URL is considered scannable if it is a standard webpage (starts with 'http')
+ * and is not a protected or restricted domain, such as the Chrome Web Store.
+ *
+ * @param {string | undefined | null} url The URL to validate.
+ * @returns {boolean} `true` if the URL is scannable, otherwise `false`.
+ */
+const isScannable = (url) => {
+  return url && url.startsWith('http') &&
+    !url.startsWith('https://chrome.google.com/webstore') &&
+    !url.startsWith('https://chromewebstore.google.com/')
+};
+
+/**
  * Listens for tab updates to trigger the initial scanning process status.
  * It sets a "scanning" visual state when a page starts loading and
  * initiates the actual scan once the page is fully loaded.
  */
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'loading' && tab && tab.url && tab.url.startsWith('http')) {
+  if (!tab || !isScannable(tab.url)) {
+    return;
+  }
+  if (changeInfo.status === 'loading') {
     setInitialLoadingState(tabId);
   }
 });
@@ -35,6 +61,9 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
  * triggering new scans for every iframe that finishes loading on the page.
  */
 chrome.webNavigation.onCompleted.addListener((details) => {
+  if (!details || !isScannable(details.url)) {
+    return;
+  }
   if (details.frameId === 0) {
     triggerPassiveScan(details.tabId);
   }
@@ -52,6 +81,9 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
  * Listens for client-side navigations in Single Page Applications (e.g., React, Angular).
  */
 chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
+  if (!details || !isScannable(details.url)) {
+    return;
+  }
   if (details.frameId === 0) {
     triggerPassiveScan(details.tabId);
   }
@@ -61,13 +93,14 @@ chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
  * Cleans up the scanned pages set when a tab is closed to prevent memory leaks.
  */
 chrome.tabs.onRemoved.addListener((tabId) => {
-  for (const key of scannedPages.keys()) {
+  for (const [key, value] of scannedPages) {
     if (key.startsWith(`${tabId}|`)) {
       scannedPages.delete(key);
       chrome.storage.session.remove(key).catch(e => console.warn(e));
     }
   }
   scansInProgress.delete(tabId);
+  removedTabs.add(tabId);
 });
 
 /**
@@ -110,11 +143,42 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       triggerPassiveScan(tabId, true);
       return;
     }
+
+    if (request.type === 'FETCH_FROM_CONTENT_SCRIPT') {
+      fetch(request.url)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(json => sendResponse(json))
+        .catch(error => {
+          sendResponse(null);
+        });
+
+      // Return true to indicate you will send a response asynchronously
+      return true;
+    }
   } catch (error) {
     if (error.message.includes('No tab with id')) return;
     console.warn(`[JS Recon Buddy] Error in onMessage listener for tab ${tabId}:`, error);
   }
 });
+
+/**
+ * Checks if a tab with the given ID is still open and accessible.
+ * @param {number} tabId The ID of the tab to check.
+ * @returns {Promise<boolean>} True if the tab exists, false otherwise.
+ */
+async function isValidTab(tabId) {
+  try {
+    await chrome.tabs.get(tabId);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
 
 /**
  * Manages the initial UI and state of a tab as it begins to load.
@@ -138,8 +202,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function setInitialLoadingState(tabId) {
   try {
     const tab = await chrome.tabs.get(tabId);
-    if (!tab || !tab.url || !tab.url.startsWith('http') ||
-      tab.url.startsWith('https://chrome.google.com/webstore')) {
+    if (!tab || !isScannable(tab.url)) {
       return;
     }
 
@@ -151,7 +214,7 @@ async function setInitialLoadingState(tabId) {
     if (storedData && storedData.status === 'complete') {
       const findingsCount = storedData.results ? storedData.results.length : 0;
       await new Promise(r => setTimeout(r, 400));
-      updateActionUI(tabId, findingsCount);
+      await updateActionUI(tabId, findingsCount);
       scannedPages.set(pageKey, { findingsCount });
       if (findingsCount == 0) {
 
@@ -186,16 +249,14 @@ async function triggerPassiveScan(tabId, force = false) {
       return;
     }
     const tab = await chrome.tabs.get(tabId);
-    if (!tab || !tab.url ||
-      !tab.url.startsWith('http') ||
-      tab.url.startsWith('https://chrome.google.com/webstore')) {
+    if (!tab || !isScannable(tab.url)) {
       return;
     }
 
     const pageKey = `${tab.id}|${tab.url}`;
     if (scannedPages.has(pageKey) && !force) {
       const cachedScan = scannedPages.get(pageKey);
-      updateActionUI(tab.id, cachedScan.findingsCount);
+      await updateActionUI(tab.id, cachedScan.findingsCount);
       return;
     }
 
@@ -211,7 +272,7 @@ async function triggerPassiveScan(tabId, force = false) {
           await chrome.storage.session.set({ [pageKey]: storedData });
         } catch (error) { }
       }
-      updateActionUI(tab.id, findingsCount);
+      await updateActionUI(tab.id, findingsCount);
       scannedPages.set(pageKey, { findingsCount });
       return;
     }
@@ -232,9 +293,15 @@ async function triggerPassiveScan(tabId, force = false) {
     })();
 
     scansInProgress.set(tabId, scanPromise);
-    scanPromise.finally(() => {
+
+    scanPromise.catch(error => {
+      if (error && error.message && !error.message.includes('No tab with id')) {
+        console.warn(`[JS Recon Buddy] An unexpected error occurred during the scan for tab ${tabId}:`, error);
+      }
+    }).finally(() => {
       scansInProgress.delete(tabId);
     });
+
   } catch (error) {
     scansInProgress.delete(tabId);
     if (error.message.includes('No tab with id')) {
@@ -372,6 +439,17 @@ async function runPassiveScan(pageData, tabId, pageKey) {
   });
 
   if (response && response.status === 'success') {
+    if (removedTabs.has(tabId)) {
+      console.log(`[JS Recon Buddy] Scan for closed tab ${tabId} was canceled. Discarding results.`);
+      removedTabs.delete(tabId);
+      chrome.storage.session.get(null, (allItems) => {
+        const keysToRemove = Object.keys(allItems).filter(key => key.startsWith(`${tabId}|`));
+        if (keysToRemove.length > 0) {
+          chrome.storage.session.remove(keysToRemove);
+        }
+      });
+      return;
+    }
     const findings = response.data;
     const findingsCount = findings.length;
     scannedPages.set(pageKey, { findingsCount: findingsCount });
@@ -402,11 +480,11 @@ async function runPassiveScan(pageData, tabId, pageKey) {
       }
     }
 
-    updateActionUI(tabId, findings.length);
+    await updateActionUI(tabId, findings.length);
   } else {
     console.warn(`[JS Recon Buddy] Offscreen scan failed for tab ${tabId}:`, response ? response.message : "No response received");
 
-    updateActionUI(tabId, 0);
+    await updateActionUI(tabId, 0);
     scannedPages.delete(pageKey);
     await chrome.storage.session.remove(pageKey);
   }
@@ -419,6 +497,9 @@ async function runPassiveScan(pageData, tabId, pageKey) {
  * @param {'scanning' | 'idle'} state
  */
 async function setIconAndState(tabId, state) {
+  if (!(await isValidTab(tabId))) {
+    return;
+  }
   try {
     if (state === 'scanning') {
       chrome.action.setIcon({ tabId, path: 'icons/icon-scanning-128.png' });
@@ -450,6 +531,9 @@ async function setIconAndState(tabId, state) {
  * @returns {Promise<void>}
  */
 async function updateTabTitle(tabId, findingsCount) {
+  if (!(await isValidTab(tabId))) {
+    return;
+  }
   try {
     await chrome.scripting.executeScript({
       target: { tabId: tabId },
@@ -476,7 +560,11 @@ async function updateTabTitle(tabId, findingsCount) {
  * @param {number} tabId - The ID of the tab whose action icon should be updated.
  * @param {number} findingsCount - The number of secrets found.
  */
-function updateActionUI(tabId, findingsCount) {
+async function updateActionUI(tabId, findingsCount) {
+  if (!(await isValidTab(tabId))) {
+    return;
+  }
+
   try {
     if (findingsCount > 0) {
       chrome.action.setIcon({ tabId, path: 'icons/icon-found-128.png' });
@@ -487,7 +575,7 @@ function updateActionUI(tabId, findingsCount) {
       chrome.action.setIcon({ tabId, path: 'icons/icon-notfound-128.png' });
       chrome.action.setBadgeText({ tabId, text: '' });
     }
-    updateTabTitle(tabId, findingsCount);
+    await updateTabTitle(tabId, findingsCount);
   } catch (error) {
     if (error.message.includes('No tab with id')) {
       console.warn("[JS Recon Buddy] The tab that we were working on was prematurely closed")

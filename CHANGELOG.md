@@ -1,3 +1,13 @@
+## [1.5.2](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.5.1...v1.5.2) (2025-09-17)
+
+
+### Bug Fixes
+
+* Fixed code not being wrapped and added copy button ([54a1f36](https://github.com/TheArqsz/JSRecon-Buddy/commit/54a1f36d063d2878107c5d467d543cf1b3351410))
+* Fixed source maps not being properly downloaded due to context restrictions (moved source map downloading to background.js ([2b34820](https://github.com/TheArqsz/JSRecon-Buddy/commit/2b3482089c1849728f5fe7b4301d6634c2080893))
+* Fixed styles not being respected on some websites ([eb643cd](https://github.com/TheArqsz/JSRecon-Buddy/commit/eb643cdb3dbe650da0379bf23748238b37991028))
+* Popup is no longer throwing errors on chrome webstore and other google's pages ([45b6453](https://github.com/TheArqsz/JSRecon-Buddy/commit/45b6453f07af01cbf516a218f8f7f684791d3d49))
+
 ## [1.5.1](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.5.0...v1.5.1) (2025-09-16)
 
 

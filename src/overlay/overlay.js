@@ -19,7 +19,7 @@
 		const OVERLAY_ID = "bug-bounty-scanner-overlay";
 		const CACHE_KEY_PREFIX = "scan_cache_";
 		const CACHE_DURATION_MS = 2 * 60 * 60 * 1000;
-		const MAX_CACHE_SIZE_BYTES = 10 * 1024 * 1024;
+		const MAX_CACHE_SIZE_BYTES = 30 * 1024 * 1024;
 
 		let shadowRoot = null;
 		const DEFAULT_PARAMETERS = [
@@ -385,26 +385,6 @@
 
 				if (validationMap[name] && !validationMap[name]()) {
 					return;
-				}
-
-				let displayContext = null;
-				let fullContext = null;
-				if (contextType === "snippet") {
-					const displaySnippetStart = Math.max(0, match.index - 40);
-					const displaySnippetEnd = Math.min(
-						code.length,
-						match.index + finding.length + 40,
-					);
-					displayContext = `... ${code.substring(displaySnippetStart, displaySnippetEnd).replace(/\n/g, " ")} ...`;
-
-					const fullSnippetStart = Math.max(0, match.index - 250);
-					const fullSnippetEnd = Math.min(
-						code.length,
-						match.index + finding.length + 250,
-					);
-					fullContext = `... ${code.substring(fullSnippetStart, fullSnippetEnd).replace(/\n/g, " ")} ...`;
-				} else if (contextType === "line") {
-					displayContext = fullContext = match[0].trim();
 				}
 
 				if (!results[name].has(finding)) {

@@ -225,6 +225,26 @@
 		async function createOverlay(forceRescan = false) {
 			const shadowHost = document.createElement("div");
 			shadowHost.id = OVERLAY_ID;
+			// Fix for some websites that use styles that interfere with the overlay
+			// Styles copied from :host in overlay.css
+			Object.assign(shadowHost.style, {
+				position: 'fixed',
+				top: '0',
+				left: '0',
+				width: '100vw',
+				height: '100vh',
+				zIndex: '2147483647',
+				border: 'none',
+				margin: '0',
+				padding: '20px',
+				opacity: '0',
+				fontSize: '16px',
+				fontWeight: '400',
+				fontFamily: 'monospace',
+				lineHeight: '1.5',
+				transform: 'translateY(20px)',
+				backgroundColor: 'rgba(0, 0, 0, 0.92)'
+			});
 			document.body.appendChild(shadowHost);
 			shadowRoot = shadowHost.attachShadow({ mode: "open" });
 

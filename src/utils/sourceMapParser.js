@@ -10,9 +10,12 @@
  */
 export async function reconstructSource(sourceMapUrl) {
 	try {
-		const response = await fetch(sourceMapUrl);
-		if (!response.ok) throw new Error(`Failed to fetch source map ${sourceMapUrl}: ${response.status}`);
-		const sourceMapData = await response.json();
+		const sourceMapData = await chrome.runtime.sendMessage({
+			type: 'FETCH_FROM_CONTENT_SCRIPT',
+			url: sourceMapUrl
+		});
+
+		if (!sourceMapData) throw new Error(`Failed to fetch source map ${sourceMapUrl}: ${response.status}`);
 
 		const reconstructedSources = {};
 
@@ -46,7 +49,7 @@ export async function reconstructSource(sourceMapUrl) {
 		return reconstructedSources;
 
 	} catch (error) {
-		console.info(`[JS Recon Buddy] Error parsing source map ${sourceMapUrl}:`, error);
+		console.warn(`[JS Recon Buddy] Error parsing source map ${sourceMapUrl}:`, error);
 		return { "jsrecon.buddy.error.log": error.toString() };
 	}
 }

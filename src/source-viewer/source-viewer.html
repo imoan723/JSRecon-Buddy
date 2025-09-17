@@ -4,12 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <title>JS Recon Buddy - Source Viewer</title>
-    <link href="prism.css" rel="stylesheet" />
     <link href="source-viewer.css" rel="stylesheet" />
+    <link href="prism.css" rel="stylesheet" />
 </head>
 
-<body>
-    <div class="container">
+<body data-prismjs-copy-timeout="500">
+    <div class="container" data-copy-state="copy" data-prismjs-copy-success="Copied!" data-prismjs-copy-error="Error">
         <pre><code id="content-container">Loading content...</code></pre>
     </div>
     <script src="prism.js" data-manual></script>

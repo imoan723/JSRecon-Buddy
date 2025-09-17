@@ -1,14 +1,17 @@
-pre[class*="language-"] {
-    margin: 0;
+div.container {
+    position: relative;
+}
 
-    overflow: auto;
-    word-wrap: normal;
-    white-space: pre;
+pre[class*="language-"],
+code[class*="language-"] {
+    overflow-wrap: break-word !important;
+    white-space: pre-wrap !important;
 }
 
 .highlight {
     background-color: #882929;
     color: #fff;
+    padding: 2px;
     border-radius: 3px;
     font-weight: bold;
 }

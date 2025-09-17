@@ -44,35 +44,33 @@ document.addEventListener('DOMContentLoaded', async () => {
       );
       codeEl.className = `language-${language}`;
       codeEl.textContent = updatedContent;
-      Prism.hooks.add("before-highlight", function (env) {
-        env.code = env.element.innerHTML;
-      });
-      Prism.highlightElement(codeEl, false, function () {
-        const xpath = `//text()[contains(., ${JSON.stringify(secret)})]`;
-        const result = document.evaluate(xpath, codeEl, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
+      setTimeout(() => {
+        Prism.highlightElement(codeEl, false, function () {
+          const xpath = `//text()[contains(., ${JSON.stringify(secret)})]`;
+          const result = document.evaluate(xpath, codeEl, null, XPathResult.ORDERED_NODE_ITERATOR_TYPE, null);
 
-        let currentNode = result.iterateNext();
-        if (currentNode) {
-          const startIndex = currentNode.textContent.indexOf(secret);
-          if (startIndex > -1) {
-            const range = document.createRange();
-            range.setStart(currentNode, startIndex);
-            range.setEnd(currentNode, startIndex + secret.length);
+          let currentNode = result.iterateNext();
+          if (currentNode) {
+            const startIndex = currentNode.textContent.indexOf(secret);
+            if (startIndex > -1) {
+              const range = document.createRange();
+              range.setStart(currentNode, startIndex);
+              range.setEnd(currentNode, startIndex + secret.length);
 
-            const tempHighlight = document.createElement('span');
-            tempHighlight.className = 'highlight';
-            range.surroundContents(tempHighlight);
+              const tempHighlight = document.createElement('span');
+              tempHighlight.className = 'highlight';
+              range.surroundContents(tempHighlight);
 
-            tempHighlight.scrollIntoView({
-              behavior: 'auto',
-              block: 'center',
-              inline: 'center'
-            });
+              tempHighlight.scrollIntoView({
+                behavior: 'auto',
+                block: 'center',
+                inline: 'center'
+              });
+            }
           }
-        }
-      });
+        });
 
-
+      }, 10);
 
     } else {
       codeEl.textContent = "[JS Recon Buddy] Error: Could not display content.";

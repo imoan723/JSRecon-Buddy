@@ -25,7 +25,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const scanButton = document.getElementById('scan-button');
   const rescanPassiveButton = document.getElementById('rescan-passive-btn');
   [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  const isScannable = activeTab.url && activeTab.url.startsWith('http');
+  const isScannable = activeTab && activeTab.url && activeTab.url.startsWith('http') &&
+    !activeTab.url.startsWith('https://chrome.google.com/webstore') &&
+    !activeTab.url.startsWith('https://chromewebstore.google.com/');
 
   if (!activeTab || !activeTab.id) {
     console.error("[JS Recon Buddy] Could not get active tab.");

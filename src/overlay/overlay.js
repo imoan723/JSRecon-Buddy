@@ -139,6 +139,33 @@
 		}
 
 		/**
+		 * Copies text to the clipboard, using a fallback for insecure (HTTP) pages.
+		 * @param {string} textToCopy The text to be copied.
+		 * @returns {Promise<void>} A promise that resolves when the copy is complete.
+		 */
+		async function copyTextToClipboard(textToCopy) {
+			if (navigator.clipboard && window.isSecureContext) {
+				await navigator.clipboard.writeText(textToCopy);
+			} else {
+				const textArea = document.createElement("textarea");
+				textArea.value = textToCopy;
+
+				textArea.style.position = "absolute";
+				textArea.style.left = "-9999px";
+
+				document.body.appendChild(textArea);
+				textArea.select();
+				try {
+					document.execCommand('copy');
+				} catch (err) {
+					console.error("[JS Recon Buddy] Fallback copy failed", err);
+				} finally {
+					document.body.removeChild(textArea);
+				}
+			}
+		}
+
+		/**
 		 * Main entry point to start or toggle the scanner overlay.
 		 * Manages the overlay's existence and decides whether to perform a fresh scan
 		 * or display cached results.
@@ -662,11 +689,13 @@
 
 					const textToCopy = itemsToCopy.join("\n");
 
-					navigator.clipboard.writeText(textToCopy).then(() => {
+					copyTextToClipboard(textToCopy).then(() => {
 						target.textContent = "Copied!";
 						setTimeout(() => {
 							target.textContent = "Copy";
 						}, 2000);
+					}).catch(err => {
+						console.warn("[JS Recon Buddy] Could not copy text: ", err);
 					});
 				}
 
@@ -820,11 +849,13 @@
 				const contentToCopy = codeContentEl.textContent;
 				if (!contentToCopy) return;
 
-				navigator.clipboard.writeText(codeContentEl.textContent).then(() => {
-					copyButton.innerHTML = 'Copied!';
+				copyTextToClipboard(contentToCopy).then(() => {
+					copyButton.innerHTML = "Copied!";
 					setTimeout(() => {
 						copyButton.innerHTML = copyButtonSVG;
 					}, 2000);
+				}).catch(err => {
+					console.warn("[JS Recon Buddy] Could not copy text: ", err);
 				});
 			});
 

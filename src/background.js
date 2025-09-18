@@ -147,17 +147,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === 'FETCH_FROM_CONTENT_SCRIPT') {
       fetch(request.url)
         .then(response => {
+          if (response && response.status === 404) {
+            return { status: 'not_found' };
+          }
           if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            throw new Error(`Fetch error - HTTP status ${response.status}`);
           }
           return response.json();
         })
         .then(json => sendResponse(json))
         .catch(error => {
-          sendResponse(null);
+          console.warn(`[JS Recon Buddy] Error fetching the content for URL ${request.url}:`, error);
+          sendResponse({ status: 'error', message: error.message });
         });
 
-      // Return true to indicate you will send a response asynchronously
       return true;
     }
   } catch (error) {

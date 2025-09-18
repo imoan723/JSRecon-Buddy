@@ -9,47 +9,52 @@
  * an object with a single `jsrecon.buddy.error.log` key containing the error message.
  */
 export async function reconstructSource(sourceMapUrl) {
-	try {
-		const sourceMapData = await chrome.runtime.sendMessage({
-			type: 'FETCH_FROM_CONTENT_SCRIPT',
-			url: sourceMapUrl
-		});
+  try {
+    const sourceMapData = await chrome.runtime.sendMessage({
+      type: 'FETCH_FROM_CONTENT_SCRIPT',
+      url: sourceMapUrl
+    });
 
-		if (!sourceMapData) throw new Error(`Failed to fetch source map ${sourceMapUrl}: ${response.status}`);
+    if (sourceMapData && sourceMapData.status && sourceMapData.status === 'not_found') {
+      throw new Error(`Source map not found at ${sourceMapUrl} (404 Not Found).`);
+    }
 
-		const reconstructedSources = {};
+    if (sourceMapData && sourceMapData.status && sourceMapData.status === 'error') {
+      throw new Error(`Failed to fetch source map due to a network or CORS error: ${sourceMapData.message}`);
+    }
 
-		if (!sourceMapData.sources) {
-			throw new Error(`Source map ${sourceMapUrl} does not contain a 'sources' array.`);
-		}
+    if (!sourceMapData || !sourceMapData.sources) {
+      throw new Error(`Source map from ${sourceMapUrl} is invalid or does not contain a 'sources' array.`);
+    }
 
-		for (const [index, sourceFile] of sourceMapData.sources.entries()) {
-			const embeddedContent = sourceMapData.sourcesContent?.[index];
-			if (embeddedContent) {
-				reconstructedSources[sourceFile] = embeddedContent;
-				continue;
-			}
+    const reconstructedSources = {};
 
-			try {
-				const sourceUrl = new URL(sourceFile, sourceMapUrl).href;
-				const sourceResponse = await fetch(sourceUrl);
+    for (const [index, sourceFile] of sourceMapData.sources.entries()) {
+      const embeddedContent = sourceMapData.sourcesContent?.[index];
+      if (embeddedContent) {
+        reconstructedSources[sourceFile] = embeddedContent;
+        continue;
+      }
 
-				if (!sourceResponse.ok) {
-					console.warn(`[JS Recon Buddy] Skipping missing source file: ${sourceUrl} (Status: ${sourceResponse.status})`);
-					continue;
-				}
+      try {
+        const sourceUrl = new URL(sourceFile, sourceMapUrl).href;
+        const sourceResponse = await fetch(sourceUrl);
 
-				reconstructedSources[sourceFile] = await sourceResponse.text();
-			} catch (fetchError) {
-				console.warn(`[JS Recon Buddy] Skipping source file due to network error: ${fetchError.message}`);
-				continue;
-			}
-		}
+        if (!sourceResponse.ok) {
+          reconstructedSources[sourceFile] = `[JS Recon Buddy] Skipping missing source file: ${sourceUrl} (Status: ${sourceResponse.status})`
+          continue;
+        }
 
-		return reconstructedSources;
+        reconstructedSources[sourceFile] = await sourceResponse.text();
+      } catch (fetchError) {
+        console.warn(`[JS Recon Buddy] Skipping source file due to network error: ${fetchError.message}`);
+        continue;
+      }
+    }
 
-	} catch (error) {
-		console.warn(`[JS Recon Buddy] Error parsing source map ${sourceMapUrl}:`, error);
-		return { "jsrecon.buddy.error.log": error.toString() };
-	}
+    return reconstructedSources;
+
+  } catch (error) {
+    return { "jsrecon.buddy.error.log": error.toString() };
+  }
 }

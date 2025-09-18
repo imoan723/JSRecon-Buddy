@@ -1,3 +1,10 @@
+## [1.5.3](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.5.2...v1.5.3) (2025-09-18)
+
+
+### Bug Fixes
+
+* Source map parser was fixed to properly handle 404s and other URL issues when collecting maps ([65c11f4](https://github.com/TheArqsz/JSRecon-Buddy/commit/65c11f4fc1805d0f9a018acc46b4f6f1e85a5223))
+
 ## [1.5.2](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.5.1...v1.5.2) (2025-09-17)
 
 

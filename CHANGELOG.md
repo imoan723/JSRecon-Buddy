@@ -1,3 +1,10 @@
+## [1.5.4](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.5.3...v1.5.4) (2025-09-18)
+
+
+### Bug Fixes
+
+* Changed how text is copied in the overlay ([8ebf591](https://github.com/TheArqsz/JSRecon-Buddy/commit/8ebf591c794cc85d216b978885e509c0b0cbc99e))
+
 ## [1.5.3](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.5.2...v1.5.3) (2025-09-18)
 
 

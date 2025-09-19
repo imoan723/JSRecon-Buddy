@@ -163,11 +163,56 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       return true;
     }
+
+    if (request.type === 'CLEAR_STALE_CACHE') {
+      if (typeof request.cacheKeyPrefix === 'string' && typeof request.maxCacheAge === 'number') {
+        clearStaleLocalCache(request.cacheKeyPrefix, request.maxCacheAge);
+      } else {
+        console.warn('[JS Recon Buddy] CLEAR_STALE_CACHE message received without a valid maxCacheAge.');
+      }
+    }
   } catch (error) {
     if (error.message.includes('No tab with id')) return;
-    console.warn(`[JS Recon Buddy] Error in onMessage listener for tab ${tabId}:`, error);
+    console.warn(`[JS Recon Buddy] Error in onMessage listener:`, error);
   }
 });
+
+/**
+ * Iterates over local storage to find and remove stale cache entries.
+ *
+ * This function retrieves all items from `chrome.storage.local`, filters for keys
+ * that start with provided `cacheKeyPrefix`, and checks if their `timestamp` property is older
+ * than the provided maximum age. Stale entries are then removed.
+ *
+ * @param {string} cacheKeyPrefix The prefix for storage keys to be checked (e.g., 'scan_cache_').
+ * @param {number} maxCacheAge The maximum age of a cache entry in milliseconds.
+ * @returns {Promise<void>} A promise that resolves when the cleanup is complete.
+ */
+async function clearStaleLocalCache(cacheKeyPrefix, maxCacheAge) {
+  const now = Date.now();
+
+  try {
+    const allItems = await chrome.storage.local.get(null);
+    const keysToRemove = [];
+
+    for (const key in allItems) {
+      if (key.startsWith(cacheKeyPrefix)) {
+        const item = allItems[key];
+        if (item && typeof item.timestamp === 'number' && (now - item.timestamp > maxCacheAge)) {
+          keysToRemove.push(key);
+        } else if (item && maxCacheAge === -1) {
+          keysToRemove.push(key);
+        }
+      }
+    }
+
+    if (keysToRemove.length > 0) {
+      await chrome.storage.local.remove(keysToRemove);
+    }
+  } catch (error) {
+    console.warn('[JS Recon Buddy] Error while clearing stale local cache:', error);
+  }
+}
 
 /**
  * Checks if a tab with the given ID is still open and accessible.
@@ -445,6 +490,7 @@ async function runPassiveScan(pageData, tabId, pageKey) {
     if (removedTabs.has(tabId)) {
       console.log(`[JS Recon Buddy] Scan for closed tab ${tabId} was canceled. Discarding results.`);
       removedTabs.delete(tabId);
+      clearStaleLocalCache(`source-viewer-${tabId}`, -1);
       chrome.storage.session.get(null, (allItems) => {
         const keysToRemove = Object.keys(allItems).filter(key => key.startsWith(`${tabId}|`));
         if (keysToRemove.length > 0) {

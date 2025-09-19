@@ -1,3 +1,15 @@
+## [1.6.0](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.5.4...v1.6.0) (2025-09-19)
+
+
+### Features
+
+* Added new HTML sink values in patterns.js ([9baaee3](https://github.com/TheArqsz/JSRecon-Buddy/commit/9baaee350a8bf75b530c65cfe20a8a1efab90424))
+
+
+### Bug Fixes
+
+* Added mechanism that clears old local storage cache properly ([9e4a937](https://github.com/TheArqsz/JSRecon-Buddy/commit/9e4a937ff5a1561927adf416df3416b2fe0b4c0b))
+
 ## [1.5.4](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.5.3...v1.5.4) (2025-09-18)
 
 

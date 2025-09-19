@@ -23,10 +23,38 @@ The scanner uses a set of regex patterns to identify and categorize potential se
 - Endpoints & Paths - uncovers potential API endpoints and other useful paths.
 - Potential Secrets - scans for API keys, tokens, and other sensitive data using pattern matching and Shannon entropy checks.
 - Potential DOM XSS Sinks - identifies dangerous properties and functions like .innerHTML and document.write.
+
+| Sink / Keyword | Category | Finding Example | 
+| :--- | :--- | :--- |
+| **`after`** | Library (jQuery) | `$('#msg').after(new URLSearchParams(location.search).get('userHtml'));` | 
+| **`append`** | Library (jQuery) | `$('#comments').append(new URLSearchParams(location.search).get('comment'));`| 
+| **`assign`** | URL/Location | `location.assign(new URLSearchParams(location.search).get('redirect'));` |
+| **`before`** | Library (jQuery) | `$('#ad').before(new URLSearchParams(location.search).get('adContent'));` | 
+| **`cssText`** | Attribute/Style | `el.style.cssText = new URLSearchParams(location.search).get('css');` | 
+| **`eval`** | Execution | `eval("var config = " + new URLSearchParams(location.search).get('cfg'));` | 
+| **`html`** | Library (jQuery) | `$('#profile').html(new URLSearchParams(location.search).get('bio'));` | 
+| **`href`** | URL/Location | `link.href = new URLSearchParams(location.search).get('url');` | 
+| **`innerHTML`** | HTML/DOM | `div.innerHTML = location.hash.substring(1);` | 
+| **`insertAdjacentHTML`** | HTML/DOM | `div.insertAdjacentHTML('afterbegin', document.cookie);` | 
+| **`open`** | URL/Location | `window.open(new URLSearchParams(location.search).get('popupUrl'));` | 
+| **`outerHTML`** | HTML/DOM | `el.outerHTML = new URLSearchParams(location.search).get('widget');` | 
+| **`parseHTML`** | Library (jQuery) | `$.parseHTML(new URLSearchParams(location.search).get('content'));` | 
+| **`prepend`** | Library (jQuery) | `$('#list').prepend(new URLSearchParams(location.search).get('newItem'));` | 
+| **`replace`** | URL/Location | `location.replace(new URLSearchParams(location.search).get('path'));` | 
+| **`setAttribute`** | Attribute/Event | `el.setAttribute('onerror', new URLSearchParams(location.search).get('err'));` | 
+| **`setInterval`** | Execution | `setInterval("checkStatus('" + document.cookie + "')");` | 
+| **`setTimeout`** | Execution | `setTimeout("alert('" + new URLSearchParams(location.search).get('msg') + "')");` | 
+| **`src`** | URL/Location | `iframe.src = new URLSearchParams(location.search).get('page');` |
+| **`style`** | Attribute/Style | `el.style = new URLSearchParams(location.search).get('styles');` | 
+| **`write`** | HTML/DOM | `document.write("Welcome " + new URLSearchParams(location.search).get('name'));`| 
+| **`writeln`** | HTML/DOM | `document.writeln(new URLSearchParams(location.search).get('line'));` | 
+
 - Interesting Parameters - flags potentially vulnerable URL parameters (e.g., redirect, debug, url).
 - Source Maps - finds links to source maps which can expose original source code.
 > If it is a valid source map, the extension tries to deconstruct source files based on data there
 - JS Libraries - lists identified JavaScript libraries and their versions.
+
+
 
 ## Why this exists?
 

@@ -128,4 +128,3 @@
 * Updated regex for generic-api-key ([f8d8ca1](https://github.com/TheArqsz/JSRecon-Buddy/commit/f8d8ca160e91f2f984ff40b1c03f207da312915a))
 
 ## 1.0.0 (2025-08-29)
-

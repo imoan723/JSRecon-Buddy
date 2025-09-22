@@ -24,30 +24,30 @@ The scanner uses a set of regex patterns to identify and categorize potential se
 - Potential Secrets - scans for API keys, tokens, and other sensitive data using pattern matching and Shannon entropy checks.
 - Potential DOM XSS Sinks - identifies dangerous properties and functions like .innerHTML and document.write.
 
-| Sink / Keyword | Category | Finding Example | 
+| Sink / Keyword | Category | Finding Example |
 | :--- | :--- | :--- |
-| **`after`** | Library (jQuery) | `$('#msg').after(new URLSearchParams(location.search).get('userHtml'));` | 
-| **`append`** | Library (jQuery) | `$('#comments').append(new URLSearchParams(location.search).get('comment'));`| 
+| **`after`** | Library (jQuery) | `$('#msg').after(new URLSearchParams(location.search).get('userHtml'));` |
+| **`append`** | Library (jQuery) | `$('#comments').append(new URLSearchParams(location.search).get('comment'));`|
 | **`assign`** | URL/Location | `location.assign(new URLSearchParams(location.search).get('redirect'));` |
-| **`before`** | Library (jQuery) | `$('#ad').before(new URLSearchParams(location.search).get('adContent'));` | 
-| **`cssText`** | Attribute/Style | `el.style.cssText = new URLSearchParams(location.search).get('css');` | 
-| **`eval`** | Execution | `eval("var config = " + new URLSearchParams(location.search).get('cfg'));` | 
-| **`html`** | Library (jQuery) | `$('#profile').html(new URLSearchParams(location.search).get('bio'));` | 
-| **`href`** | URL/Location | `link.href = new URLSearchParams(location.search).get('url');` | 
-| **`innerHTML`** | HTML/DOM | `div.innerHTML = location.hash.substring(1);` | 
-| **`insertAdjacentHTML`** | HTML/DOM | `div.insertAdjacentHTML('afterbegin', document.cookie);` | 
-| **`open`** | URL/Location | `window.open(new URLSearchParams(location.search).get('popupUrl'));` | 
-| **`outerHTML`** | HTML/DOM | `el.outerHTML = new URLSearchParams(location.search).get('widget');` | 
-| **`parseHTML`** | Library (jQuery) | `$.parseHTML(new URLSearchParams(location.search).get('content'));` | 
-| **`prepend`** | Library (jQuery) | `$('#list').prepend(new URLSearchParams(location.search).get('newItem'));` | 
-| **`replace`** | URL/Location | `location.replace(new URLSearchParams(location.search).get('path'));` | 
-| **`setAttribute`** | Attribute/Event | `el.setAttribute('onerror', new URLSearchParams(location.search).get('err'));` | 
-| **`setInterval`** | Execution | `setInterval("checkStatus('" + document.cookie + "')");` | 
-| **`setTimeout`** | Execution | `setTimeout("alert('" + new URLSearchParams(location.search).get('msg') + "')");` | 
+| **`before`** | Library (jQuery) | `$('#ad').before(new URLSearchParams(location.search).get('adContent'));` |
+| **`cssText`** | Attribute/Style | `el.style.cssText = new URLSearchParams(location.search).get('css');` |
+| **`eval`** | Execution | `eval("var config = " + new URLSearchParams(location.search).get('cfg'));` |
+| **`html`** | Library (jQuery) | `$('#profile').html(new URLSearchParams(location.search).get('bio'));` |
+| **`href`** | URL/Location | `link.href = new URLSearchParams(location.search).get('url');` |
+| **`innerHTML`** | HTML/DOM | `div.innerHTML = location.hash.substring(1);` |
+| **`insertAdjacentHTML`** | HTML/DOM | `div.insertAdjacentHTML('afterbegin', document.cookie);` |
+| **`open`** | URL/Location | `window.open(new URLSearchParams(location.search).get('popupUrl'));` |
+| **`outerHTML`** | HTML/DOM | `el.outerHTML = new URLSearchParams(location.search).get('widget');` |
+| **`parseHTML`** | Library (jQuery) | `$.parseHTML(new URLSearchParams(location.search).get('content'));` |
+| **`prepend`** | Library (jQuery) | `$('#list').prepend(new URLSearchParams(location.search).get('newItem'));` |
+| **`replace`** | URL/Location | `location.replace(new URLSearchParams(location.search).get('path'));` |
+| **`setAttribute`** | Attribute/Event | `el.setAttribute('onerror', new URLSearchParams(location.search).get('err'));` |
+| **`setInterval`** | Execution | `setInterval("checkStatus('" + document.cookie + "')");` |
+| **`setTimeout`** | Execution | `setTimeout("alert('" + new URLSearchParams(location.search).get('msg') + "')");` |
 | **`src`** | URL/Location | `iframe.src = new URLSearchParams(location.search).get('page');` |
-| **`style`** | Attribute/Style | `el.style = new URLSearchParams(location.search).get('styles');` | 
-| **`write`** | HTML/DOM | `document.write("Welcome " + new URLSearchParams(location.search).get('name'));`| 
-| **`writeln`** | HTML/DOM | `document.writeln(new URLSearchParams(location.search).get('line'));` | 
+| **`style`** | Attribute/Style | `el.style = new URLSearchParams(location.search).get('styles');` |
+| **`write`** | HTML/DOM | `document.write("Welcome " + new URLSearchParams(location.search).get('name'));`|
+| **`writeln`** | HTML/DOM | `document.writeln(new URLSearchParams(location.search).get('line'));` |
 
 - Interesting Parameters - flags potentially vulnerable URL parameters (e.g., redirect, debug, url).
 - Source Maps - finds links to source maps which can expose original source code.
@@ -67,7 +67,7 @@ This project was inspired by the simple yet powerful JavaScript bookmarklets pop
 
 While those are great for a quick look, they have a few key limitations:
 
-- Modifying a bookmarklet to add new patterns or change its functionality is a pain. 
+- Modifying a bookmarklet to add new patterns or change its functionality is a pain.
 - Most are hardcoded to find specific things, like just endpoints. Adding new scanners for secrets or parameters isn't straightforward.
 - CORS...Bookmarklets [have hard time analyzing](https://medium.com/making-instapaper/bookmarklets-are-dead-d470d4bbb626) scripts from other domains, leaving major blind spots.
 
@@ -112,7 +112,7 @@ JS Recon Buddy was built to solve these problems. It takes the great idea of a r
 Since this extension is not on the Chrome Web Store, it must be loaded as an unpacked extension in developer mode.
 
 1. Download [ZIP from releases](https://github.com/TheArqsz/JSRecon-Buddy/releases/latest/download/js-recon-buddy.zip) or clone this repository to your local machine.
-   
+
    > If downloaded as a file, unzip it to a directory called e.g. `js-recon-buddy`.
 3. Open Google Chrome (or other chromium-based browser) and navigate to chrome://extensions.
 4. Turn on "Developer mode" using the toggle in the top-right corner.
@@ -139,13 +139,13 @@ In addition to the on-demand full analysis, JS Recon Buddy automatically perform
 
 #### Icon Status Indicators
 
-The extension icon changes color and uses a small badge (the notification on the corner) to communicate the status of the passive scan in real-time. 
+The extension icon changes color and uses a small badge (the notification on the corner) to communicate the status of the passive scan in real-time.
 
 By clicking the icon, you can open the popup to view a detailed list of these passively found secrets and inspect their source, all without needing to run the full page analysis. This ensures you never miss a potential finding while browsing.
 
 - **Scanning (Yellow)** - when a page is loading, the icon turns yellow with a "..." badge, indicating that the passive scan is in progress.
 
-> If the icon is yellow, without the indicator, it means that the webpage cannot be scanned or there was an error within the extension 
+> If the icon is yellow, without the indicator, it means that the webpage cannot be scanned or there was an error within the extension
 
 <p align="center">
 	<img src="./assets/example-passive-scanning.png" alt="Passive scanning" width="90%"/>

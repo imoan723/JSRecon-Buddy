@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.6.0...v1.6.1) (2025-09-22)
+
+
+### Bug Fixes
+
+* Changed handling of fetch requests ([f286d95](https://github.com/TheArqsz/JSRecon-Buddy/commit/f286d954b5286e744ddab8485579a9a3a1096bf6))
+
 ## [1.6.0](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.5.4...v1.6.0) (2025-09-19)
 
 

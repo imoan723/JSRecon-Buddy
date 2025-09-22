@@ -1,3 +1,10 @@
+## [1.6.2](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.6.1...v1.6.2) (2025-09-22)
+
+
+### Bug Fixes
+
+* Updated the logic behind the popup rendering ([5720fc6](https://github.com/TheArqsz/JSRecon-Buddy/commit/5720fc6637d00447865fd596bfb0fe58ca8d5782))
+
 ## [1.6.1](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.6.0...v1.6.1) (2025-09-22)
 
 
@@ -128,3 +135,4 @@
 * Updated regex for generic-api-key ([f8d8ca1](https://github.com/TheArqsz/JSRecon-Buddy/commit/f8d8ca160e91f2f984ff40b1c03f207da312915a))
 
 ## 1.0.0 (2025-08-29)
+

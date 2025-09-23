@@ -80,9 +80,12 @@ async function loadAndRenderSecrets(tab, isScannable = true) {
 
   findingsList.innerHTML = '<div class="no-findings"><span>Loading findings...</span></div>';
 
-  const data = await chrome.storage.session.get(pageKey);
-
-  renderContent(data[pageKey], findingsList, isScannable);
+  chrome.storage.session.get(pageKey).then(data => {
+    renderContent(data[pageKey], findingsList, isScannable);
+  }).catch(error => {
+    console.warn("[JS Recon Buddy] Error fetching session data:", error);
+    findingsList.innerHTML = '<div class="no-findings"><span>Error loading findings.</span></div>';
+  });
 }
 
 /**

@@ -100,10 +100,10 @@ In the `getPatterns` function, add a new entry to the patterns object. This incl
 In the `renderResults` function, add a corresponding entry to the `sectionConfig` array. This defines how the results for your new category will be displayed.
 
 ```javascript
-{ 
-  key: 'My New Scanner', 
-  title: '[?] My New Scanner', 
-  formatter: (safe) => `<span>${safe}</span>` 
+{
+  key: 'My New Scanner',
+  title: '[?] My New Scanner',
+  formatter: (safe) => `<span>${safe}</span>`
 },
 ```
 

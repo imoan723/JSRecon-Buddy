@@ -24,6 +24,30 @@ const scansInProgress = new Map();
 const removedTabs = new Set();
 
 /**
+ * @description A queue to hold pending network requests. Each item is an object
+ * containing the `url` to fetch and the `resolve` function of the promise
+ * returned by `throttledFetch`.
+ * @type {Array<{url: string, resolve: Function}>}
+ */
+const fetchQueue = [];
+
+/**
+ * @description A counter for the number of currently active fetch requests.
+ * This is used to ensure the number of concurrent requests does not exceed
+ * `MAX_CONCURRENT_FETCHES`.
+ * @type {number}
+ */
+let activeFetches = 0;
+
+/**
+ * @description The maximum number of network requests allowed to run concurrently.
+ * This constant is the core of the throttling mechanism, preventing the service
+ * worker from being saturated with too many simultaneous fetches.
+ * @type {number}
+ */
+const MAX_CONCURRENT_FETCHES = 3;
+
+/**
  * Determines if a given URL is scannable by the extension.
  *
  * A URL is considered scannable if it is a standard webpage (starts with 'http')
@@ -37,6 +61,48 @@ const isScannable = (url) => {
     !url.startsWith('https://chrome.google.com/webstore') &&
     !url.startsWith('https://chromewebstore.google.com/')
 };
+
+/**
+ * A throttled fetch function that uses a queue to limit concurrent network requests.
+ * @param {string} url The URL to fetch.
+ * @returns {Promise<string|null>} A promise that resolves with the content text or null on error.
+ */
+async function throttledFetch(url) {
+  return new Promise((resolve) => {
+    fetchQueue.push({ url, resolve });
+    processFetchQueue();
+  });
+}
+
+/**
+ * Processes the fetch queue, ensuring the number of active fetches
+ * does not exceed MAX_CONCURRENT_FETCHES.
+ */
+function processFetchQueue() {
+  if (activeFetches >= MAX_CONCURRENT_FETCHES || fetchQueue.length === 0) {
+    return;
+  }
+
+  activeFetches++;
+  const { url, resolve } = fetchQueue.shift();
+
+  fetch(url)
+    .then(res => {
+      if (!res.ok) {
+        return resolve(null);
+      }
+      return res.text();
+    })
+    .then(text => resolve(text))
+    .catch(err => {
+      console.warn(`[JS Recon Buddy] Fetch error for ${url}:`, err.message);
+      resolve(null);
+    })
+    .finally(() => {
+      activeFetches--;
+      processFetchQueue();
+    });
+}
 
 /**
  * Listens for tab updates to trigger the initial scanning process status.
@@ -440,17 +506,22 @@ async function runPassiveScan(pageData, tabId, pageKey) {
     })),
   ];
 
-  await Promise.all(
-    pageData.externalScripts.map(async (url) => {
-      try {
-        const response = await fetch(url);
-        if (response.ok) {
-          const content = await response.text();
-          allContentSources.push({ source: url, content, isTooLarge: false });
-        }
-      } catch (e) { }
+  const externalScriptPromises = pageData.externalScripts.map(url =>
+    throttledFetch(url).then(content => {
+      if (content) {
+        return { source: url, content, isTooLarge: false };
+      }
+      return null;
     })
   );
+
+  const fetchedScripts = await Promise.all(externalScriptPromises);
+
+  fetchedScripts.forEach(script => {
+    if (script) {
+      allContentSources.push(script);
+    }
+  });
 
   const contentMap = {};
   const sourcesForOffscreen = allContentSources

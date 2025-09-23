@@ -1063,9 +1063,9 @@
         if (isURL) {
           sourceHTML = `↳ <a href="${source}" target="_blank">${escapeHTML(source)}</a>`;
         } else if (isLocal) {
-          sourceHTML = `↳ <span class="clickable-source" 
-						data-source="${escapeHTML(source)}" 
-						data-index="${index}" 
+          sourceHTML = `↳ <span class="clickable-source"
+						data-source="${escapeHTML(source)}"
+						data-index="${index}"
 						data-length="${secretLength}">${escapeHTML(source)} (click to view)</span>`;
         }
         occurrencesHTML += `<div>${sourceHTML}</div>`;

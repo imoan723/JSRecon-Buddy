@@ -1,3 +1,17 @@
+## [1.6.2](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.6.1...v1.6.2) (2025-09-22)
+
+
+### Bug Fixes
+
+* Updated the logic behind the popup rendering ([5720fc6](https://github.com/TheArqsz/JSRecon-Buddy/commit/5720fc6637d00447865fd596bfb0fe58ca8d5782))
+
+## [1.6.1](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.6.0...v1.6.1) (2025-09-22)
+
+
+### Bug Fixes
+
+* Changed handling of fetch requests ([f286d95](https://github.com/TheArqsz/JSRecon-Buddy/commit/f286d954b5286e744ddab8485579a9a3a1096bf6))
+
 ## [1.6.0](https://github.com/TheArqsz/JSRecon-Buddy/compare/v1.5.4...v1.6.0) (2025-09-19)
 
 
